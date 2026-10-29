@@ -226,6 +226,8 @@ ul.punkte li{margin:3px 0}
 .wp-einheit.fest{opacity:.7}
 .wp-einheit.optional{border:1px dashed #CFCAC1}
 .wp-einheit[data-wp-key]{cursor:pointer}
+.wp-kopf{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.wp-kopf .augenbraue{margin:0}
 .wp-einheit[data-wp-key]:hover{box-shadow:inset 0 0 0 1px #CFCAC1}
 .wp-einheit.manuell{box-shadow:inset 0 0 0 2px var(--tinte)}
 .tag-wahl button:disabled{opacity:.4;cursor:not-allowed}
@@ -1579,6 +1581,17 @@ async function zeigeWochenplanung(){
   wp.manuell = {};
   const e = empfehlung(wp.rueck);
   wp.empfehlung = e; wp.modus = e.modus;
+  // Ausgangslage merken, damit "Zurücksetzen" sie wiederherstellen kann
+  wp.ausgang = JSON.stringify({verf: wp.verf, modus: wp.modus, gefuehl: wp.gefuehl});
+  zeichneWochenplanung();
+}
+function wpGeaendert(){
+  return Object.keys(wp.manuell || {}).length > 0 || JSON.stringify({verf: wp.verf, modus: wp.modus, gefuehl: wp.gefuehl}) !== wp.ausgang;
+}
+function wpZuruecksetzen(){
+  const a = JSON.parse(wp.ausgang);
+  wp.verf = a.verf; wp.modus = a.modus; wp.gefuehl = a.gefuehl; wp.manuell = {};
+  wp.empfehlung = empfehlung(wp.rueck); wp.modus = a.modus;
   zeichneWochenplanung();
 }
 
@@ -1626,7 +1639,8 @@ function zeichneWochenplanung(){
   wp.ergebnis = baueWoche();
   const g = wp.ergebnis;
   const neueSig = {};
-  const vorschlagHtml = `<div class="karte"><span class="augenbraue">Vorschlag</span>
+  const vorschlagHtml = `<div class="karte"><div class="wp-kopf"><span class="augenbraue">Vorschlag</span>
+      <button class="knopf klein hell" id="wp-reset" ${wpGeaendert() ? "" : "disabled"}>↺ Zurücksetzen</button></div>
     ${[...Array(7)].map((_, i) => {
       const d = plusTage(wp.ziel, i);
       const f = g.fest.filter(e => e.datum===d), n = g.eintraege.filter(e => e.datum===d);
@@ -1661,6 +1675,7 @@ function zeichneWochenplanung(){
   document.querySelectorAll(".wp-zeit button").forEach(b => b.onclick = () => { wp.verf[+b.parentElement.dataset.tag].zeit = b.dataset.wert; zeichneWochenplanung(); });
   document.querySelectorAll(".wp-flags button").forEach(b => b.onclick = () => { const v = wp.verf[+b.parentElement.dataset.tag]; v[b.dataset.flag] = !v[b.dataset.flag]; zeichneWochenplanung(); });
   document.querySelectorAll("[data-wp-key]").forEach(el => el.onclick = () => wpVerschieben(el.dataset.wpKey));
+  $("#wp-reset").onclick = wpZuruecksetzen;
   $("#leiste").hidden = false;
   const nNeu = g.eintraege.filter(e => !e._bestehend).length, nVer = g.eintraege.filter(e => e._bestehend).length;
   $("#status").textContent = `${nNeu} neue Einheiten${nVer ? `, ${nVer} verschoben` : ""} · ${datumKurz(wp.ziel)}–${datumKurz(zielEnde)}`;
