@@ -224,6 +224,10 @@ ul.punkte li{margin:3px 0}
 .wp-einheit+.wp-einheit{margin-top:6px}
 .wp-einheit .punkt{margin:0}
 .wp-einheit.fest{opacity:.7}
+.wp-einheit.optional{border:1px dashed #CFCAC1}
+.wp-vtag .wp-tag-name span{display:block;font-size:11px;font-weight:600;letter-spacing:0;color:var(--grau);text-transform:none}
+.wp-vtag.geaendert{animation:aufleuchten 1.2s ease-out}
+@keyframes aufleuchten{0%{background:#FFF3C4}100%{background:transparent}}
 
 /* Bottom-Sheet */
 #sheet{position:fixed;inset:0;z-index:20}
@@ -1478,9 +1482,18 @@ function baueWoche(){
   const r = wp.rueck, modus = wp.modus;
   const {liste, info} = vorlagen(modus, r);
   const tage = [...Array(7)].map((_, i) => plusTage(wp.ziel, i));
-  // Bereits eingetragene Einheiten der Zielwoche bleiben und ersetzen passende Vorlagen
-  const fest = zustand.plan.filter(e => tage.includes(e.datum) && e.status!=="gestrichen");
-  const vorhanden = [...fest];
+  // Bereits eingetragene Einheiten der Zielwoche ersetzen passende Vorlagen
+  const festAlle = zustand.plan.filter(e => tage.includes(e.datum) && e.status!=="gestrichen");
+  const vorhanden = [...festAlle];
+  // Offene eingetragene Einheiten an Tagen ohne (genug) Zeit werden mit umgeplant
+  const fest = [], beweglich = [];
+  tage.forEach((d, i) => {
+    const cap = ZEIT[wp.verf[i].zeit].min; let summe = 0;
+    for(const e of festAlle.filter(x => x.datum===d)){
+      if(!erledigtDurch(e) && (cap===0 || summe + minuten(e) > cap)) beweglich.push(e);
+      else { fest.push(e); summe += minuten(e); }
+    }
+  });
   const nimmFest = (pred) => { const i = vorhanden.findIndex(pred); if(i<0) return false; vorhanden.splice(i,1); return true; };
   const offen = liste.filter(v => !(
       v.art ? nimmFest(e => e.art===v.art)
@@ -1500,8 +1513,12 @@ function baueWoche(){
     if(l.reduce((s, x) => s + minuten(x), 0) + minuten(e) > kapazitaet(d)) return false;
     return !verstoesse({...e, id:"__neu"}, d, [...fest, ...neu]).length;
   };
-  for(const v of offen.sort((a,b) => a.prio - b.prio)){
-    const kandidaten = [0,1,-1,2,-2,3,-3,4,-4,5,-5,6,-6].map(k => v.tag + k).filter(t => t>=0 && t<7);
+  const zuPlanen = [...beweglich.map(e => ({...e, typ:"__bestehend", tag: tage.indexOf(e.datum), prio: 0, bestehend: true, vorher: e.datum})),
+                   ...offen.sort((a,b) => a.prio - b.prio)];
+  for(const v of zuPlanen){
+    // Schlüsseleinheiten (Kraft A, Schwelle, Läufe, langes Rad) erst auf feste Tage, spontane Tage nur notfalls
+    const naehe = [0,1,-1,2,-2,3,-3,4,-4,5,-5,6,-6].map(k => v.tag + k).filter(t => t>=0 && t<7);
+    const kandidaten = v.prio <= 5 ? [...naehe.filter(t => !wp.verf[t].spontan), ...naehe.filter(t => wp.verf[t].spontan)] : naehe;
     let ziel = kandidaten.map(t => tage[t]).find(d => passt(v, d));
     let e = {...v};
     if(!ziel && v.dauer_min){
@@ -1512,7 +1529,7 @@ function baueWoche(){
           if(passt(k, d)){ ziel = d; e = k; break; } }
       }
     }
-    if(!ziel){ nichtUntergebracht.push(v); continue; }
+    if(!ziel){ nichtUntergebracht.push(v.bestehend ? {...v, titel: `${kurzTitel(v)} (bleibt am ${datumKurz(v.vorher)} – bitte selbst verschieben)`} : v); continue; }
     const tagIndex = tage.indexOf(ziel);
     if(wp.verf[tagIndex].spontan){ e.details = [...e.details, `${WOCHENTAGE_LANG[tagIndex]} spontan – nur wenn es passt`]; e.optional = true; }
     neu.push({...e, datum: ziel});
@@ -1523,7 +1540,8 @@ function baueWoche(){
       details:["Spaziergang oder Mobility","Knee-to-Wall"], datum:d});
   });
   const eintraege = neu.map(e => {
-    const {typ, tag, prio, ...rest} = e;
+    const {typ, tag, prio, bestehend, vorher, ...rest} = e;
+    if(bestehend) return {...rest, verschoben_von: rest.verschoben_von || vorher, status:"verschoben", _bestehend:true, _vorher:vorher};
     return {...rest, id:`${e.datum}-${typ}`, status:"geplant", woche: wp.ziel};
   }).sort((a,b) => a.datum < b.datum ? -1 : 1);
   return {eintraege, fest, nichtUntergebracht, info};
@@ -1592,15 +1610,24 @@ function zeichneWochenplanung(){
     <p class="klein-grau" style="margin:10px 0 0">Kurz = bis 45 min, Normal = bis 90 min, Viel = mehr. „Spontan“ markiert Einheiten als optional.</p></div>`;
   wp.ergebnis = baueWoche();
   const g = wp.ergebnis;
+  const neueSig = {};
   const vorschlagHtml = `<div class="karte"><span class="augenbraue">Vorschlag</span>
     ${[...Array(7)].map((_, i) => {
       const d = plusTage(wp.ziel, i);
       const f = g.fest.filter(e => e.datum===d), n = g.eintraege.filter(e => e.datum===d);
-      const zeilen = [...f.map(e => ({e, fest:true})), ...n.map(e => ({e, fest:false}))].map(({e, fest}) => `<div class="wp-einheit ${fest?"fest":""}">
+      const zeilen = [...f.map(e => ({e, fest:true})), ...n.map(e => ({e, fest:false}))].map(({e, fest}) => {
+        const meta = [e.dauer_min ? e.dauer_min + " min" : (e.umfang || ""),
+          fest ? "schon eingetragen" : "", e._bestehend ? `verschoben von ${datumKurz(e._vorher)}` : "",
+          e.verkuerzt && !fest ? "gekürzt" : "", e.optional ? "spontan" : ""].filter(Boolean).join(" · ");
+        return `<div class="wp-einheit ${fest?"fest":""} ${e.optional?"optional":""}">
           <span class="punkt" style="background:${SPORT_FARBEN[e.sport]||"#BDB7AD"}"></span>
-          <span class="k-text"><span class="k-titel">${esc(kurzTitel(e))}</span><span class="k-meta">${esc(e.dauer_min ? e.dauer_min + " min" : (e.umfang || ""))}${fest ? " · schon eingetragen" : ""}</span></span>
-          ${e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : ""}</div>`).join("");
-      return `<div class="wp-vtag"><div class="wp-tag-name">${datumKurz(d)}</div><div>${zeilen || `<span class="leer">Ruhetag</span>`}</div></div>`;
+          <span class="k-text"><span class="k-titel">${esc(kurzTitel(e))}</span><span class="k-meta">${esc(meta)}</span></span>
+          ${e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : ""}</div>`; }).join("");
+      const sig = [...f, ...n].map(e => kurzTitel(e) + (e.dauer_min||"") + (e.optional?"s":"")).join("|");
+      const geaendert = wp.sig && wp.sig[d]!==undefined && wp.sig[d]!==sig;
+      neueSig[d] = sig;
+      const v = wp.verf[i];
+      return `<div class="wp-vtag ${geaendert ? "geaendert" : ""}"><div class="wp-tag-name">${datumKurz(d)}${v.zeit!=="normal" ? `<span>${ZEIT[v.zeit].l}${v.reise ? " · Reise" : ""}</span>` : v.reise ? "<span>Reise</span>" : ""}</div><div>${zeilen || `<span class="leer">${v.zeit==="keine" ? "Keine Zeit" : "Ruhetag"}</span>`}</div></div>`;
     }).join("")}
     ${g.nichtUntergebracht.length ? `<div class="warnung"><b>Nicht untergebracht:</b> ${esc(g.nichtUntergebracht.map(x => x.titel).join(", "))} – zu wenig Zeit oder Regelkonflikt. Mehr Zeit freigeben oder später im Kalender hinzufügen.</div>` : ""}
     <p class="klein-grau" style="margin:10px 0 0">Lauf-Basis: ${g.info.laufBasis} min${g.info.lauf2 > g.info.lauf1 ? ` → Lauf 2 mit ${g.info.lauf2} min (+10 %)` : g.info.knieOk ? "" : " (keine Steigerung: Knie war auffällig)"} · Rad lang: ${g.info.radLang} min${g.info.schwelleMehr ? " · Schwelle: 3×10 statt 3×8 min" : ""}</p>
@@ -1610,6 +1637,7 @@ function zeichneWochenplanung(){
     <h1 style="margin-top:4px">Woche planen</h1>
     ${schonGeplant ? `<div class="warnung" style="margin:0 0 12px">Diese Woche wurde schon geplant. Bereits eingetragene Einheiten bleiben erhalten; übernommen werden nur fehlende.</div>` : ""}
     <div class="raster"><div class="spalte">${rueckHtml}${empfHtml}${gefuehlHtml}${verfHtml}</div><div class="spalte">${vorschlagHtml}</div></div>`;
+  wp.sig = neueSig;
   $("#zurueck").onclick = zeigeKalender;
   document.querySelectorAll("#wp-modus button").forEach(b => b.onclick = () => { wp.modus = b.dataset.wert; zeichneWochenplanung(); });
   document.querySelectorAll("#wp-gefuehl button").forEach(b => b.onclick = () => {
@@ -1617,7 +1645,8 @@ function zeichneWochenplanung(){
   document.querySelectorAll(".wp-zeit button").forEach(b => b.onclick = () => { wp.verf[+b.parentElement.dataset.tag].zeit = b.dataset.wert; zeichneWochenplanung(); });
   document.querySelectorAll(".wp-flags button").forEach(b => b.onclick = () => { const v = wp.verf[+b.parentElement.dataset.tag]; v[b.dataset.flag] = !v[b.dataset.flag]; zeichneWochenplanung(); });
   $("#leiste").hidden = false;
-  $("#status").textContent = `${g.eintraege.length} neue Einheiten für ${datumKurz(wp.ziel)}–${datumKurz(zielEnde)}`;
+  const nNeu = g.eintraege.filter(e => !e._bestehend).length, nVer = g.eintraege.filter(e => e._bestehend).length;
+  $("#status").textContent = `${nNeu} neue Einheiten${nVer ? `, ${nVer} verschoben` : ""} · ${datumKurz(wp.ziel)}–${datumKurz(zielEnde)}`;
   $("#speichern").textContent = "Woche übernehmen";
   $("#speichern").onclick = speichereWoche;
 }
@@ -1626,9 +1655,13 @@ async function speichereWoche(){
   const knopf = $("#speichern"); knopf.disabled = true; $("#status").textContent = "Speichere …";
   const g = wp.ergebnis;
   try{
+    const sauber = e => { const {_bestehend, _vorher, ...x} = e; return x; };
+    const verschoben = new Map(g.eintraege.filter(e => e._bestehend).map(e => [e.id, sauber(e)]));
     zustand.plan = await aendere("daten/plan.json", [], plan => {
       const ids = new Set(plan.map(e => e.id));
-      return plan.concat(g.eintraege.filter(e => !ids.has(e.id))).sort((a,b) => a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0);
+      return plan.map(e => verschoben.get(e.id) || e)
+        .concat(g.eintraege.filter(e => !e._bestehend && !ids.has(e.id)).map(sauber))
+        .sort((a,b) => a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0);
     }, `Wochenplanung ${wp.ziel}: ${g.eintraege.length} Einheiten`);
     const r = wp.rueck;
     await aendere("daten/wochen.json", [], liste => liste.filter(w => w.start!==wp.ziel).concat({
