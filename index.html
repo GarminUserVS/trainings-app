@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light only">
+<meta name="theme-color" content="#F3F1EC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Training">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<title>Training</title>
+<style>
+:root{
+  --hg:#F3F1EC; --karte:#FFFFFF; --tinte:#1D1C1A; --grau:#7A766F; --linie:#ECE8E1; --spur:#EFECE6; --feld:#F6F4F0;
+  --gruen:#1E9E6A; --gruen-t:#E5F5EE; --gelb:#D49A0F; --gelb-t:#FBF2D9; --rot:#E0473B; --rot-t:#FCE9E7;
+  --blau:#4F6BED; --radius:18px;
+  --schrift:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--hg);color:var(--tinte);font-family:var(--schrift);font-size:16px;line-height:1.4}
+body{padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 96px)}
+main{max-width:560px;margin:0 auto}
+h1{font-size:28px;letter-spacing:-.5px;margin:8px 4px 16px}
+.augenbraue{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--grau)}
+.karte{background:var(--karte);border-radius:var(--radius);padding:20px;margin-bottom:12px}
+.karte>.augenbraue{display:block;margin-bottom:12px}
+.leer{color:var(--grau)}
+.score-zeile{display:flex;align-items:flex-end;gap:12px;margin-top:8px}
+.score{font-size:56px;line-height:56px;font-weight:700;letter-spacing:-2px}
+.von{color:var(--grau);padding-bottom:6px}
+.pille{display:inline-block;font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;white-space:nowrap}
+.p-gruen{background:var(--gruen-t);color:var(--gruen)} .p-gelb{background:var(--gelb-t);color:#B7800C} .p-rot{background:var(--rot-t);color:var(--rot)}
+.p-grau{background:var(--spur);color:var(--grau)}
+.score-zeile .pille{margin-bottom:10px}
+.rat{margin-top:10px}
+.spur{height:8px;background:var(--spur);border-radius:8px;margin-top:16px;overflow:hidden}
+.spur>i{display:block;height:100%;border-radius:8px}
+.tag{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--linie)}
+.tag:first-of-type{border-top:0;padding-top:0}
+.tag-name{width:72px;flex:none;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grau);padding-top:2px}
+.tag.heute .tag-name{color:var(--tinte)}
+.tag-inhalt{flex:1;min-width:0}
+.einheit+.einheit{margin-top:14px}
+.einheit-kopf{display:flex;align-items:flex-start;gap:8px}
+.punkt{width:8px;height:8px;border-radius:8px;flex:none;margin-top:8px}
+.einheit-titel{font-weight:650;flex:1}
+.einheit-meta{text-align:right;font-size:13px;color:var(--grau);display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.einheit-details{font-size:13px;color:var(--grau);margin:2px 0 0 16px}
+.variante{margin:8px 0 0 16px;border-radius:12px;padding:9px 11px;font-size:14px;line-height:1.4}
+.knopf{appearance:none;border:0;border-radius:12px;font:inherit;font-weight:650;cursor:pointer;padding:12px 16px;background:var(--tinte);color:#fff}
+.knopf.klein{padding:8px 12px;font-size:14px}
+.knopf.hell{background:var(--spur);color:var(--tinte)}
+.knopf.voll{width:100%}
+.knopf:disabled{opacity:.5}
+.einheit .knopf{margin:10px 0 0 16px}
+/* Kraft-Log */
+.zurueck{appearance:none;border:0;background:none;font:inherit;color:var(--blau);padding:8px 0;cursor:pointer;font-weight:600}
+.station{margin:20px 4px 8px}
+.uebung-kopf{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.uebung-name{font-weight:700;font-size:17px}
+.hinweis{font-size:13px;color:var(--grau);margin-top:2px}
+.saetze{margin-top:12px;display:grid;grid-template-columns:28px 1fr 1fr 36px;gap:8px;align-items:center}
+.saetze .kopfzeile{font-size:12px;color:var(--grau);font-weight:600}
+.satznr{color:var(--grau);font-size:14px;text-align:center}
+.saetze input{width:100%;font:inherit;font-size:17px;font-weight:600;text-align:center;padding:10px 6px;border:1px solid transparent;border-radius:10px;background:var(--feld);color:var(--tinte)}
+.saetze input:focus{outline:none;border-color:var(--blau);background:#fff}
+.saetze input::placeholder{color:#B9B4AB;font-weight:500}
+.entf{appearance:none;border:0;background:none;color:var(--grau);font-size:22px;cursor:pointer;line-height:1;width:36px;height:40px;border-radius:10px}
+.entf.ok{color:var(--gruen);background:var(--gruen-t);font-size:18px;font-weight:700}
+.satz-plus{margin-top:10px}
+.haken{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+.haken input{display:none}
+.haken .box{width:26px;height:26px;border-radius:8px;border:2px solid #CFCAC1;display:grid;place-items:center;flex:none;transition:.15s}
+.haken input:checked+.box{background:var(--gruen);border-color:var(--gruen)}
+.haken input:checked+.box::after{content:"";width:7px;height:12px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.leiste{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(env(safe-area-inset-bottom) + 12px);background:linear-gradient(to top,var(--hg) 70%,rgba(243,241,236,0))}
+.leiste .innen{max-width:560px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.status{font-size:13px;color:var(--grau);flex:1}
+.fehler{background:var(--rot-t);color:#9B2C24;border-radius:12px;padding:12px;margin-bottom:12px;font-size:14px}
+label.feld{display:block;font-size:13px;color:var(--grau);font-weight:600;margin:14px 0 6px}
+input.text{width:100%;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--linie);background:var(--feld)}
+.klein-grau{font-size:13px;color:var(--grau)}
+ol.schritte{padding-left:20px;margin:8px 0 0}
+ol.schritte li{margin-bottom:6px}
+.fuss{text-align:center;margin-top:20px}
+.fuss button{appearance:none;border:0;background:none;color:var(--grau);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+</style>
+</head>
+<body>
+<main id="app"><div class="karte leer">Lade …</div></main>
+<div class="leiste" id="leiste" hidden><div class="innen"><span class="status" id="status"></span><button class="knopf" id="speichern">Speichern</button></div></div>
+
+<script>
+"use strict";
+// ---------- Konfiguration ----------
+const REPO = "GarminUserVS/trainings-daten";
+const API = "https://api.github.com/repos/" + REPO + "/contents/";
+const TOKEN_KEY = "trainings_token";
+const ENTWURF_KEY = "trainings_entwurf_";
+
+const WOCHENTAGE = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+const SPORT_FARBEN = {laufen:"#8B5CF6", rad:"#F08A24", schwimmen:"#2F8FD8", kraft:"#3D3A36", mobilitaet:"#20A39E", sonstiges:"#BDB7AD"};
+const AMPEL = {
+  gruen:{wort:"Grün", klasse:"p-gruen", farbe:"var(--gruen)", tint:"var(--gruen-t)"},
+  gelb:{wort:"Gelb", klasse:"p-gelb", farbe:"var(--gelb)", tint:"var(--gelb-t)"},
+  rot:{wort:"Rot", klasse:"p-rot", farbe:"var(--rot)", tint:"var(--rot-t)"}
+};
+const RAT = {
+  gruen:"Volles Training wie geplant.",
+  gelb:"Umfang oder Intensität reduzieren – z. B. Intervalle kürzen oder in Grundlage umwandeln.",
+  rot:"Ruhe oder aktive Erholung (lockere Bewegung, Mobility). Harte Einheit verschieben."
+};
+const INTENSITAET = {locker:"p-gruen", mittel:"p-gelb", hart:"p-rot"};
+
+// ---------- Hilfen ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function isoDatum(d){ const z=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()); }
+function plusTage(iso, n){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return isoDatum(d); }
+function tagLabel(iso, i){ if(i===0) return "Heute"; if(i===1) return "Morgen"; const d=new Date(iso+"T12:00:00"); return WOCHENTAGE[d.getDay()]+" "+iso.slice(8,10)+"."+iso.slice(5,7)+"."; }
+function lies(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
+function schreib(key, wert){ try{ wert===null ? localStorage.removeItem(key) : localStorage.setItem(key, wert); }catch(e){} }
+const HEUTE = isoDatum(new Date());
+
+// ---------- GitHub-Zugriff ----------
+function b64zuText(b64){ const bin=atob(b64.replace(/\n/g,"")); const bytes=Uint8Array.from(bin, c=>c.charCodeAt(0)); return new TextDecoder().decode(bytes); }
+function textZuB64(text){ const bytes=new TextEncoder().encode(text); let bin=""; for(let i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); return btoa(bin); }
+
+async function gh(pfad, opt={}){
+  const token = lies(TOKEN_KEY);
+  const res = await fetch(API + pfad + (opt.method ? "" : "?ref=main&t=" + Date.now()), {
+    method: opt.method || "GET",
+    cache: "no-store",
+    headers: {"Authorization":"Bearer "+token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"},
+    body: opt.body ? JSON.stringify(opt.body) : undefined
+  });
+  return res;
+}
+async function ladeJson(pfad, standard){
+  const res = await gh(pfad);
+  if(res.status===404) return {daten: standard, sha: null};
+  if(res.status===401) throw new Error("token");
+  if(!res.ok) throw new Error("GitHub antwortet mit " + res.status + " für " + pfad);
+  const j = await res.json();
+  return {daten: JSON.parse(b64zuText(j.content)), sha: j.sha};
+}
+// Liest die aktuelle Datei, wendet die Änderung an und schreibt zurück; bei Konflikt neu versuchen.
+async function aendere(pfad, standard, aenderung, nachricht){
+  for(let versuch=0; versuch<3; versuch++){
+    const {daten, sha} = await ladeJson(pfad, standard);
+    const neu = aenderung(structuredClone(daten));
+    const body = {message: nachricht, content: textZuB64(JSON.stringify(neu, null, 1) + "\n"), branch: "main"};
+    if(sha) body.sha = sha;
+    const res = await gh(pfad, {method:"PUT", body});
+    if(res.ok) return neu;
+    if(res.status!==409 && res.status!==422) throw new Error("Speichern fehlgeschlagen (" + res.status + ")");
+  }
+  throw new Error("Speichern fehlgeschlagen: Datei wurde gleichzeitig geändert. Bitte nochmal versuchen.");
+}
+
+// ---------- Zustand ----------
+const zustand = {plan:[], bericht:null, uebungen:{}, kraft:[]};
+
+async function pruefeZugriff(){
+  const res = await fetch("https://api.github.com/repos/" + REPO, {cache:"no-store",
+    headers:{"Authorization":"Bearer "+lies(TOKEN_KEY), "Accept":"application/vnd.github+json"}});
+  if(res.status===401) throw new Error("token");
+  if(res.status===403 || res.status===404) throw new Error("zugriff");
+  if(!res.ok) throw new Error("GitHub antwortet mit " + res.status);
+  const j = await res.json();
+  if(j.permissions && !j.permissions.push) throw new Error("schreibrecht");
+}
+
+async function ladeAlles(){
+  await pruefeZugriff();
+  const [plan, bericht, uebungen, kraft] = await Promise.all([
+    ladeJson("daten/plan.json", []),
+    ladeJson("daten/berichte/" + HEUTE + ".json", null),
+    ladeJson("daten/uebungen.json", {}),
+    ladeJson("daten/kraft.json", [])
+  ]);
+  zustand.plan = plan.daten; zustand.bericht = bericht.daten; zustand.uebungen = uebungen.daten; zustand.kraft = kraft.daten;
+}
+
+// ---------- Ansichten ----------
+function zeigeEinrichtung(fehler){
+  $("#leiste").hidden = true;
+  $("#app").innerHTML = `
+    <h1>Training</h1>
+    ${fehler ? `<div class="fehler">${esc(fehler)}</div>` : ""}
+    <div class="karte">
+      <span class="augenbraue">Einmalig einrichten</span>
+      <p style="margin:0">Die App liest und speichert deine Daten im privaten Repository <b>trainings-daten</b>. Dafür braucht sie einen Zugangsschlüssel von GitHub, der nur auf diesem Gerät gespeichert wird.</p>
+      <label class="feld" for="token">GitHub-Token</label>
+      <input class="text" id="token" type="password" autocomplete="off" placeholder="github_pat_…">
+      <button class="knopf voll" id="token-ok" style="margin-top:14px">Verbinden</button>
+      <p class="klein-grau" style="margin-top:14px">Auf jedem Gerät, auf dem du die App nutzt, einmal eingeben.</p>
+    </div>`;
+  $("#token-ok").onclick = async () => {
+    const t = $("#token").value.trim();
+    if(!t) return;
+    schreib(TOKEN_KEY, t);
+    start();
+  };
+}
+
+function ampelKarte(){
+  const b = zustand.bericht;
+  if(!b) return `<div class="karte"><span class="augenbraue">Bereitschaft</span><div class="leer">Der Morgenbericht für heute ist noch nicht da – er kommt, sobald deine Uhr den Schlaf synchronisiert hat.</div></div>`;
+  const a = AMPEL[b.farbe];
+  return `<div class="karte">
+    <span class="augenbraue">Bereitschaft heute</span>
+    <div class="score-zeile"><span class="score">${b.score}</span><span class="von">/ 100</span><span class="pille ${a.klasse}">● ${a.wort}</span></div>
+    <div class="rat">${esc(RAT[b.farbe])}</div>
+    <div class="spur"><i style="width:${Math.max(0,Math.min(100,b.score))}%;background:${a.farbe}"></i></div>
+  </div>`;
+}
+
+function einheitHtml(e, istHeute){
+  const farbe = SPORT_FARBEN[e.sport] || "#BDB7AD";
+  const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "");
+  const pille = e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : "";
+  let unten = e.details ? `<div class="einheit-details">${esc(e.details)}</div>` : "";
+  const b = zustand.bericht;
+  if(istHeute && b && e.varianten && e.varianten[b.farbe]){
+    const a = AMPEL[b.farbe];
+    unten = `<div class="variante" style="background:${a.tint}"><b>Heute bei ${a.wort}:</b> ${esc(e.varianten[b.farbe])}</div>`;
+  }
+  const kraftArt = e.art && zustand.uebungen[e.art] ? e.art : null;
+  const log = kraftArt && zustand.kraft.find(k => k.datum===e.datum && k.einheit===kraftArt);
+  const knopf = kraftArt && e.datum<=HEUTE
+    ? `<button class="knopf klein ${log ? "hell" : ""}" data-log="${esc(e.id)}">${log ? "Eintrag ansehen" : "Training eintragen"}</button>` : "";
+  return `<div class="einheit">
+    <div class="einheit-kopf"><span class="punkt" style="background:${farbe}"></span>
+      <span class="einheit-titel">${esc(e.titel)}</span>
+      <span class="einheit-meta">${esc(umfang)}${pille}</span></div>
+    ${unten}${knopf}</div>`;
+}
+
+function zeigeHeute(){
+  $("#leiste").hidden = true;
+  const aktiv = zustand.plan.filter(e => ["geplant","verschoben","erledigt"].includes(e.status || "geplant"));
+  let tage = "";
+  for(let i=0;i<4;i++){
+    const d = plusTage(HEUTE, i);
+    const liste = aktiv.filter(e => e.datum===d);
+    tage += `<div class="tag ${i===0?"heute":""}"><div class="tag-name">${tagLabel(d,i)}</div><div class="tag-inhalt">${
+      liste.length ? liste.map(e => einheitHtml(e, i===0)).join("") : `<span class="leer">Ruhetag</span>`}</div></div>`;
+  }
+  const d = new Date();
+  $("#app").innerHTML = `
+    <h1>${WOCHENTAGE[d.getDay()]}, ${d.getDate()}.${d.getMonth()+1}.</h1>
+    ${ampelKarte()}
+    <div class="karte"><span class="augenbraue">Heute & die nächsten Tage</span>${tage}</div>
+    <div class="fuss"><button id="abmelden">Token auf diesem Gerät entfernen</button></div>`;
+  document.querySelectorAll("[data-log]").forEach(k => k.onclick = () => zeigeKraftLog(k.dataset.log));
+  $("#abmelden").onclick = () => { if(confirm("Token auf diesem Gerät entfernen?")){ schreib(TOKEN_KEY, null); zeigeEinrichtung(); } };
+}
+
+// ---------- Kraft-Log ----------
+function letzteWerte(uebungId, vorDatum){
+  const frueher = zustand.kraft.filter(k => k.datum < vorDatum && k.uebungen && k.uebungen[uebungId] && k.uebungen[uebungId].saetze)
+    .sort((a,b) => a.datum < b.datum ? 1 : -1);
+  return frueher.length ? {datum: frueher[0].datum, saetze: frueher[0].uebungen[uebungId].saetze} : null;
+}
+function kurz(saetze){ return saetze.map(s => (s.wdh ?? "–") + (s.kg ? "×" + String(s.kg).replace(".", ",") + " kg" : "")).join(", "); }
+
+function startwerte(einheitArt, datum){
+  const vorhanden = zustand.kraft.find(k => k.datum===datum && k.einheit===einheitArt);
+  const entwurf = lies(ENTWURF_KEY + datum + "_" + einheitArt);
+  if(entwurf){ try{ return JSON.parse(entwurf); }catch(e){} }
+  const werte = {};
+  for(const u of zustand.uebungen[einheitArt].uebungen){
+    if(vorhanden && vorhanden.uebungen[u.id]){ werte[u.id] = structuredClone(vorhanden.uebungen[u.id]); continue; }
+    if(u.erfassung==="abhaken"){ werte[u.id] = {erledigt:false}; continue; }
+    const letzte = letzteWerte(u.id, datum);
+    const vorlage = letzte ? letzte.saetze : (u.ziel || [{}, {}, {}]);
+    // Vorschlag als Platzhalter, damit erst eigene Eingaben zählen
+    werte[u.id] = {saetze: vorlage.map(s => ({wdh:null, kg:null, v_wdh:s.wdh ?? null, v_kg:s.kg ?? null}))};
+  }
+  return werte;
+}
+
+let offen = null; // {eintrag, art, werte}
+
+function zeigeKraftLog(planId){
+  const e = zustand.plan.find(x => x.id===planId);
+  const art = e.art;
+  const def = zustand.uebungen[art];
+  offen = {eintrag:e, art, werte: startwerte(art, e.datum)};
+  const b = zustand.bericht;
+  const variante = (e.datum===HEUTE && b && e.varianten && e.varianten[b.farbe])
+    ? `<div class="variante" style="margin:0 0 12px;background:${AMPEL[b.farbe].tint}"><b>Heute bei ${AMPEL[b.farbe].wort}:</b> ${esc(e.varianten[b.farbe])}</div>` : "";
+
+  let html = `<button class="zurueck" id="zurueck">‹ Übersicht</button>
+    <h1 style="margin-top:4px">${esc(def.name)}</h1>${variante}`;
+  let station = null;
+  for(const u of def.uebungen){
+    if(u.station!==station){ station = u.station; html += `<div class="augenbraue station">${esc(station)}</div>`; }
+    html += `<div class="karte" data-uebung="${esc(u.id)}">${uebungHtml(u)}</div>`;
+  }
+  $("#app").innerHTML = html;
+  $("#zurueck").onclick = zeigeHeute;
+  bindeKraft();
+  $("#leiste").hidden = false;
+  setzeStatus();
+  $("#speichern").onclick = speichereKraft;
+  window.scrollTo(0,0);
+}
+
+function uebungHtml(u){
+  const w = offen.werte[u.id];
+  if(u.erfassung==="abhaken"){
+    return `<label class="haken"><input type="checkbox" data-haken="${esc(u.id)}" ${w.erledigt?"checked":""}><span class="box"></span><span class="uebung-name">${esc(u.name)}</span></label>`;
+  }
+  const letzte = letzteWerte(u.id, offen.eintrag.datum);
+  const info = [u.einbeinig ? "pro Bein" : "", letzte ? "Letztes Mal: " + kurz(letzte.saetze) : (u.ziel ? "Vorgabe: " + kurz(u.ziel) : "")].filter(Boolean).join(" · ");
+  let zeilen = `<span class="kopfzeile"></span><span class="kopfzeile" style="text-align:center">Wdh</span><span class="kopfzeile" style="text-align:center">kg</span><span></span>`;
+  const zahl = x => x===null || x===undefined ? "" : String(x).replace(".", ",");
+  w.saetze.forEach((s, i) => {
+    // Leerer Satz mit Vorschlag: ✓ übernimmt den Vorschlag; sonst × entfernt den Satz
+    const vorschlag = s.wdh===null && s.kg===null && (s.v_wdh!==null && s.v_wdh!==undefined);
+    const aktion = vorschlag
+      ? `<button class="entf ok" data-ok="${i}" aria-label="Satz ${i+1} wie vorgeschlagen übernehmen">✓</button>`
+      : `<button class="entf" data-weg="${i}" aria-label="Satz ${i+1} entfernen">×</button>`;
+    zeilen += `<span class="satznr">${i+1}</span>
+      <input inputmode="numeric" pattern="[0-9]*" data-satz="${i}" data-feld="wdh" value="${zahl(s.wdh)}" placeholder="${zahl(s.v_wdh)}">
+      <input inputmode="decimal" data-satz="${i}" data-feld="kg" value="${zahl(s.kg)}" placeholder="${zahl(s.v_kg)}">
+      ${aktion}`;
+  });
+  return `<div class="uebung-kopf"><span class="uebung-name">${esc(u.name)}</span></div>
+    ${info ? `<div class="hinweis">${esc(info)}</div>` : ""}
+    <div class="saetze">${zeilen}</div>
+    <button class="knopf klein hell satz-plus" data-plus="1">+ Satz</button>`;
+}
+
+function neuZeichnen(id){
+  const u = zustand.uebungen[offen.art].uebungen.find(x => x.id===id);
+  const karte = document.querySelector(`[data-uebung="${id}"]`);
+  karte.innerHTML = uebungHtml(u);
+  bindeKraft(karte);
+}
+
+function bindeKraft(wurzel=document){
+  wurzel.querySelectorAll("[data-haken]").forEach(el => el.onchange = () => { offen.werte[el.dataset.haken].erledigt = el.checked; merkeEntwurf(); });
+  wurzel.querySelectorAll("[data-uebung]").forEach(karte => bindeKarte(karte));
+  if(wurzel!==document && wurzel.dataset && wurzel.dataset.uebung) bindeKarte(wurzel);
+}
+function bindeKarte(karte){
+  const id = karte.dataset.uebung;
+  const w = offen.werte[id];
+  if(!w.saetze) return;
+  karte.querySelectorAll("input[data-satz]").forEach(inp => inp.oninput = () => {
+    const s = w.saetze[+inp.dataset.satz];
+    const roh = inp.value.replace(",", ".").trim();
+    s[inp.dataset.feld] = roh==="" ? null : Number(roh);
+    merkeEntwurf();
+  });
+  karte.querySelectorAll("[data-weg]").forEach(k => k.onclick = () => { w.saetze.splice(+k.dataset.weg, 1); merkeEntwurf(); neuZeichnen(id); });
+  karte.querySelectorAll("[data-ok]").forEach(k => k.onclick = () => {
+    const s = w.saetze[+k.dataset.ok]; s.wdh = s.v_wdh; s.kg = s.v_kg ?? null; merkeEntwurf(); neuZeichnen(id);
+  });
+  const plus = karte.querySelector("[data-plus]");
+  if(plus) plus.onclick = () => {
+    const vorher = w.saetze[w.saetze.length-1] || {};
+    w.saetze.push({wdh:null, kg:null, v_wdh: vorher.wdh ?? vorher.v_wdh ?? null, v_kg: vorher.kg ?? vorher.v_kg ?? null});
+    merkeEntwurf(); neuZeichnen(id);
+  };
+}
+
+let ungespeichert = false;
+function merkeEntwurf(){
+  schreib(ENTWURF_KEY + offen.eintrag.datum + "_" + offen.art, JSON.stringify(offen.werte));
+  ungespeichert = true; setzeStatus();
+}
+function setzeStatus(text){
+  const vorhanden = zustand.kraft.find(k => k.datum===offen.eintrag.datum && k.einheit===offen.art);
+  $("#status").textContent = text || (ungespeichert ? "Noch nicht gespeichert – Eingaben bleiben auf dem Gerät erhalten." : (vorhanden ? "Gespeichert." : ""));
+}
+
+// Nur tatsächlich eingetragene Werte speichern; ein leeres kg-Feld übernimmt den Vorschlag, wenn Wdh eingetragen ist.
+function bereinigt(){
+  const aus = {};
+  for(const [id, w] of Object.entries(offen.werte)){
+    if(w.saetze){
+      const saetze = w.saetze.filter(s => s.wdh!==null)
+        .map(s => { const x = {wdh:s.wdh}; const kg = s.kg!==null ? s.kg : s.v_kg; if(kg!==null && kg!==undefined) x.kg = kg; return x; });
+      if(saetze.length) aus[id] = {saetze};
+    } else if(w.erledigt){ aus[id] = {erledigt:true}; }
+  }
+  return aus;
+}
+
+async function speichereKraft(){
+  const uebungen = bereinigt();
+  if(!Object.keys(uebungen).length){ setzeStatus("Noch nichts eingetragen."); return; }
+  const knopf = $("#speichern"); knopf.disabled = true; setzeStatus("Speichere …");
+  const datum = offen.eintrag.datum, art = offen.art;
+  try{
+    zustand.kraft = await aendere("daten/kraft.json", [], liste => {
+      const rest = liste.filter(k => !(k.datum===datum && k.einheit===art));
+      rest.push({datum, einheit:art, plan_id: offen.eintrag.id, uebungen, gespeichert: new Date().toISOString()});
+      return rest.sort((a,b) => a.datum < b.datum ? -1 : 1);
+    }, `Kraft-Log ${datum} (${zustand.uebungen[art].name})`);
+    schreib(ENTWURF_KEY + datum + "_" + art, null);
+    ungespeichert = false;
+    // Gespeicherte Werte als echte Werte übernehmen, damit die Ansicht stimmt
+    offen.werte = startwerte(art, datum);
+    zeigeKraftLog(offen.eintrag.id);
+    setzeStatus("Gespeichert ✓");
+  }catch(err){
+    setzeStatus(err.message==="token" ? "Token ungültig – bitte neu einrichten." : err.message);
+  }finally{ knopf.disabled = false; }
+}
+
+window.addEventListener("beforeunload", e => { if(ungespeichert && offen){ e.preventDefault(); e.returnValue = ""; } });
+
+// ---------- Start ----------
+async function start(){
+  if(!lies(TOKEN_KEY)) return zeigeEinrichtung();
+  $("#app").innerHTML = `<div class="karte leer">Lade …</div>`;
+  try{
+    await ladeAlles();
+    zeigeHeute();
+  }catch(err){
+    if(err.message==="token"){ schreib(TOKEN_KEY, null); return zeigeEinrichtung("Der Token wurde nicht akzeptiert (abgelaufen oder falsch kopiert). Bitte neu eingeben."); }
+    if(err.message==="zugriff"){ schreib(TOKEN_KEY, null); return zeigeEinrichtung("Der Token hat keinen Zugriff auf trainings-daten. Beim Erstellen das Repository auswählen und „Contents: Read and write“ erlauben."); }
+    if(err.message==="schreibrecht"){ schreib(TOKEN_KEY, null); return zeigeEinrichtung("Der Token darf nur lesen. Bitte „Contents: Read and write“ erlauben."); }
+    $("#app").innerHTML = `<div class="fehler">${esc(err.message)}</div><button class="knopf" onclick="start()">Nochmal versuchen</button>`;
+  }
+}
+start();
+</script>
+</body>
+</html>
