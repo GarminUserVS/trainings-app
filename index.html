@@ -145,9 +145,36 @@ textarea.text{width:100%;min-height:70px;font:inherit;padding:12px;border-radius
 .k-meta{font-size:12px;color:var(--grau)}
 .k-einheit.gestrichen .k-titel{text-decoration:line-through;color:var(--grau)}
 .k-einheit.fertig{background:var(--gruen-t)}
-.k-akt{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--grau);padding:8px 12px}
+.k-akt{display:flex;align-items:center;gap:10px;color:var(--tinte);padding:8px 12px;margin-top:6px}
+.k-akt .k-titel{font-weight:600;color:var(--grau);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .k-akt .punkt{margin-top:0}
 .k-leer{font-size:14px;padding:4px 0}
+/* Detail unter dem Kalender */
+.k-einheit.gewaehlt,.k-akt.gewaehlt{box-shadow:inset 0 0 0 2px var(--blau)}
+button.k-akt{appearance:none;border:0;background:none;font:inherit;width:100%;text-align:left;border-radius:12px;cursor:pointer}
+.detail h2{font-size:26px;margin:4px 0 6px;display:flex;align-items:center;gap:10px;letter-spacing:-.3px}
+.detail h2.durch{text-decoration:line-through;color:var(--grau)}
+.punkt.gross{width:12px;height:12px;border-radius:12px;margin:0;flex:none}
+.d-meta{color:var(--grau);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.d-text{font-size:16px;line-height:1.5;margin:14px 0 0}
+.d-verlauf{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.d-verlauf span{background:var(--spur);border-radius:999px;padding:4px 10px;font-size:13px;color:var(--grau)}
+.d-abschnitt{margin-top:18px}
+.d-abschnitt>.augenbraue{display:block;margin-bottom:8px}
+.d-variante{border-left:4px solid;border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--feld);font-size:15px;line-height:1.45}
+.d-variante b{display:block;font-size:13px;margin-bottom:2px}
+.d-werte{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.d-werte div{background:var(--feld);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column}
+.d-werte span{font-size:12px;color:var(--grau)}
+.d-werte b{font-size:18px}
+.zonen{display:flex;flex-direction:column;gap:6px}
+.zone{display:grid;grid-template-columns:28px 1fr 56px;gap:8px;align-items:center;font-size:13px;color:var(--grau)}
+.zone-min{text-align:right}
+.d-uebung{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--linie);font-size:14px}
+.d-uebung b{text-align:right}
+.d-aktionen{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.d-aktionen .knopf{flex:1 1 40%}
+
 /* Bottom-Sheet */
 #sheet{position:fixed;inset:0;z-index:20}
 .sheet-hg{position:absolute;inset:0;background:rgba(29,28,26,.35)}
@@ -164,6 +191,8 @@ textarea.text{width:100%;min-height:70px;font:inherit;padding:12px;border-radius
 .tag-wahl{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
 .tag-wahl button{appearance:none;border:0;background:var(--feld);border-radius:10px;padding:10px 6px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--tinte)}
 .tag-wahl button.konflikt{background:var(--gelb-t)}
+.tag-wahl button.vorbei{color:var(--grau);font-weight:500}
+.tag-wahl button.heute{box-shadow:inset 0 0 0 2px var(--tinte)}
 .tag-wahl button span{margin-left:4px;color:#B7800C}
 .warnung{background:var(--gelb-t);border-radius:12px;padding:12px 14px;margin:14px 0 10px;font-size:14px}
 .warnung ul{margin:6px 0 0;padding-left:18px}
@@ -183,6 +212,12 @@ textarea.text{width:100%;min-height:70px;font:inherit;padding:12px;border-radius
   .k-einheit .punkt{margin-top:7px}
   .k-einheit .pille{grid-column:2;justify-self:start;font-size:10px;padding:3px 7px}
   .k-titel{font-size:14px;line-height:1.3}
+  .d-raster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+  .d-raster.einspaltig{grid-template-columns:minmax(0,1fr)}
+  .k-akt{display:grid;grid-template-columns:8px minmax(0,1fr);gap:8px;align-items:start;padding:8px 10px;font-size:13px;line-height:1.3}
+  .k-akt .punkt{margin-top:5px}
+  .d-aktionen .knopf{flex:0 0 auto;padding:10px 18px}
+  .d-werte{grid-template-columns:repeat(3,minmax(0,1fr))}
   .sheet{bottom:auto;top:50%;transform:translateY(-50%);border-radius:20px;animation:none;max-width:520px}
 }
 </style>
@@ -574,8 +609,10 @@ function startwerte(einheitArt, datum){
 }
 
 let offen = null; // {eintrag, art, werte}
+let kamVonKalender = false;
 
 function zeigeKraftLog(planId){
+  kamVonKalender = !!document.querySelector(".k-woche");
   const e = zustand.plan.find(x => x.id===planId);
   const art = e.art;
   const def = zustand.uebungen[art];
@@ -595,7 +632,7 @@ function zeigeKraftLog(planId){
   }
   if(station!==null) html += `</div>`;
   $("#app").innerHTML = html;
-  $("#zurueck").onclick = zeigeHeute;
+  $("#zurueck").onclick = kamVonKalender ? zeigeKalender : zeigeHeute;
   bindeKraft();
   $("#leiste").hidden = false;
   setzeStatus();
@@ -767,16 +804,20 @@ function verstoesse(e, ziel){
   }
   return [...new Set(out)];
 }
-function naechsterFreierTag(e, ab){
+// Nächstgelegener Tag ohne Regelverstoß (erst nach vorne, dann zurück), nicht vor "fruehestens"
+function naechsterFreierTag(e, ziel, bisher){
+  const fruehestens = plusTage(bisher || ziel, -7);
   for(let k=1; k<=7; k++){
-    const d = plusTage(ab, k);
-    if(d >= HEUTE && !verstoesse(e, d).length) return d;
+    for(const d of [plusTage(ziel, k), plusTage(ziel, -k)]){
+      if(d >= fruehestens && d!==bisher && !verstoesse(e, d).length) return d;
+    }
   }
   return null;
 }
 
 // ---------- Kalender ----------
 let wochenVersatz = 0;
+let auswahl = null;  // {typ:"plan"|"akt", id}
 function montag(iso){ const d = new Date(iso+"T12:00:00"); d.setDate(d.getDate() - (d.getDay()+6)%7); return isoDatum(d); }
 function datumKurz(iso){ const d = new Date(iso+"T12:00:00"); return WOCHENTAGE[d.getDay()] + " " + iso.slice(8,10) + "." + iso.slice(5,7) + "."; }
 function erledigtDurch(e){
@@ -790,6 +831,14 @@ function zeigeKalender(){
   const tage = [...Array(7)].map((_, i) => plusTage(start, i));
   const kw = (() => { const d = new Date(start+"T12:00:00"); d.setDate(d.getDate()+3); const j = new Date(d.getFullYear(),0,4);
     return 1 + Math.round(((d - j) / 864e5 - 3 + (j.getDay()+6)%7) / 7); })();
+  // Ohne gültige Auswahl: nächste anstehende Einheit der Woche (sonst die erste)
+  const inWoche = zustand.plan.filter(e => tage.includes(e.datum));
+  const gueltig = auswahl && (auswahl.typ==="plan" ? inWoche.some(e => e.id===auswahl.id)
+    : zustand.aktivitaeten.some(a => String(a.id)===String(auswahl.id) && tage.includes(a.datum)));
+  if(!gueltig){
+    const naechste = inWoche.filter(e => e.datum>=HEUTE && e.status!=="gestrichen")[0] || inWoche[0];
+    auswahl = naechste ? {typ:"plan", id:naechste.id} : null;
+  }
   let spalten = "";
   for(const d of tage){
     const geplant = zustand.plan.filter(e => e.datum===d);
@@ -797,11 +846,11 @@ function zeigeKalender(){
     const zugeordnet = new Set(geplant.map(erledigtDurch).filter(Boolean));
     const extra = akt.filter(a => !zugeordnet.has(a));
     let inhalt = geplant.map(e => kalenderEinheit(e)).join("");
-    inhalt += extra.map(a => `<div class="k-akt"><span class="punkt" style="background:${SPORT_FARBEN[a.sport]||"#BDB7AD"}"></span>
-      <span>✓ ${esc(SPORT_NAMEN[a.sport]||a.sport)} ${Math.round(a.dauer_min||0)} min</span></div>`).join("");
+    inhalt += extra.map(a => `<button class="k-akt ${auswahl && auswahl.typ==="akt" && String(auswahl.id)===String(a.id) ? "gewaehlt" : ""}" data-akt-id="${esc(a.id)}"><span class="punkt" style="background:${SPORT_FARBEN[a.sport]||"#BDB7AD"}"></span>
+      <span class="k-text"><span class="k-titel">${esc(SPORT_NAMEN[a.sport]||a.sport)}</span><span class="k-meta">✓ ${Math.round(a.dauer_min||0)} min</span></span></button>`).join("");
     if(!inhalt) inhalt = `<div class="leer k-leer">Ruhetag</div>`;
     spalten += `<div class="k-tag ${d===HEUTE?"heute":""} ${d<HEUTE?"vorbei":""}">
-      <div class="k-kopf"><span>${datumKurz(d)}</span>${d>=HEUTE ? `<button class="k-plus" data-neu="${d}" aria-label="Einheit hinzufügen">+</button>` : ""}</div>
+      <div class="k-kopf"><span>${datumKurz(d)}</span><button class="k-plus" data-neu="${d}" aria-label="Einheit hinzufügen">+</button></div>
       ${inhalt}</div>`;
   }
   $("#app").innerHTML = `${reiter("kalender")}
@@ -810,13 +859,117 @@ function zeigeKalender(){
       <button class="knopf klein hell" id="k-vor" aria-label="Nächste Woche">›</button>
       ${wochenVersatz ? `<button class="link" id="k-heute">Diese Woche</button>` : ""}</div>
     <div class="k-woche">${spalten}</div>
-    <p class="klein-grau" style="text-align:center">Tippe auf eine Einheit, um sie zu verschieben, zu kürzen, umzuwandeln oder zu streichen. ✓ = laut Garmin erledigt.</p>`;
+    <p class="klein-grau" style="text-align:center;margin:10px 0 16px">Tippe auf eine Einheit für Details. ✓ = laut Garmin erledigt.</p>
+    <div id="k-detail">${detailKarte()}</div>`;
   bindeReiter();
   $("#k-zurueck").onclick = () => { wochenVersatz--; zeigeKalender(); };
   $("#k-vor").onclick = () => { wochenVersatz++; zeigeKalender(); };
   if($("#k-heute")) $("#k-heute").onclick = () => { wochenVersatz = 0; zeigeKalender(); };
-  document.querySelectorAll("[data-einheit]").forEach(el => el.onclick = () => oeffneAktionen(el.dataset.einheit));
+  const waehle = (neu) => {
+    auswahl = neu; zeigeKalender();
+    const d = $("#k-detail"); if(d && window.innerWidth < 900) d.scrollIntoView({behavior:"smooth", block:"start"});
+  };
+  document.querySelectorAll("[data-einheit]").forEach(el => el.onclick = () => waehle({typ:"plan", id:el.dataset.einheit}));
+  document.querySelectorAll("[data-akt-id]").forEach(el => el.onclick = () => waehle({typ:"akt", id:el.dataset.aktId}));
   document.querySelectorAll("[data-neu]").forEach(el => el.onclick = () => oeffneNeu(el.dataset.neu));
+  bindeDetail();
+}
+
+// ---------- Detailansicht unter dem Kalender ----------
+function zonenHtml(z){
+  if(!z || !z.some(Boolean)) return "";
+  const summe = z.reduce((a,b) => a+b, 0) || 1;
+  const farben = ["#BFD8F2","#7FB7E6","#F2C14E","#F08A24","#E0473B"];
+  return `<div class="d-abschnitt"><div class="augenbraue">Pulszonen</div>
+    <div class="zonen">${z.map((m,i) => `<div class="zone"><span>Z${i+1}</span>
+      <div class="spur klein"><i style="width:${Math.round(100*m/summe)}%;background:${farben[i]}"></i></div>
+      <span class="zone-min">${Math.round(m)} min</span></div>`).join("")}</div></div>`;
+}
+function aktivitaetHtml(a){
+  const zahl = x => String(Math.round(x*10)/10).replace(".", ",");
+  const werte = [
+    ["Dauer", Math.round(a.dauer_min||0) + " min"],
+    a.distanz_km ? ["Distanz", zahl(a.distanz_km) + " km"] : null,
+    a.sport==="laufen" && a.distanz_km && a.dauer_min ? ["Pace", (() => { const p = a.dauer_min/a.distanz_km; return Math.floor(p) + ":" + String(Math.round((p%1)*60)).padStart(2,"0") + " /km"; })()] : null,
+    a.sport==="schwimmen" && a.distanz_km && a.dauer_min ? ["Pace", (() => { const p = a.dauer_min/(a.distanz_km*10); return Math.floor(p) + ":" + String(Math.round((p%1)*60)).padStart(2,"0") + " /100 m"; })()] : null,
+    a.puls_avg ? ["Ø Puls", Math.round(a.puls_avg) + " bpm"] : null,
+    a.puls_max ? ["Max. Puls", Math.round(a.puls_max) + " bpm"] : null,
+    a.last ? ["Trainingslast", Math.round(a.last)] : null,
+    a.te_aerob ? ["Trainingseffekt", zahl(a.te_aerob) + " aerob" + (a.te_anaerob ? " · " + zahl(a.te_anaerob) + " anaerob" : "")] : null
+  ].filter(Boolean);
+  return `<div class="d-abschnitt"><div class="augenbraue">Laut Garmin · ${esc(a.start || "")} Uhr</div>
+    <div class="d-werte">${werte.map(([k,v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div></div>
+    ${zonenHtml(a.zonen_min)}`;
+}
+function kraftHtml(e){
+  const log = zustand.kraft.find(k => k.datum===e.datum && k.einheit===e.art);
+  const def = zustand.uebungen[e.art];
+  if(!log || !def) return "";
+  const zeilen = def.uebungen.filter(u => log.uebungen[u.id]).map(u => {
+    const w = log.uebungen[u.id];
+    return `<div class="d-uebung"><span>${esc(u.name)}</span><b>${w.erledigt ? "✓" : esc(kurz(w.saetze))}</b></div>`;
+  }).join("");
+  return `<div class="d-abschnitt"><div class="augenbraue">Kraft-Log</div>${zeilen}</div>`;
+}
+function detailKarte(){
+  if(!auswahl) return `<div class="karte leer">Keine Einheiten in dieser Woche. Mit + fügst du eine hinzu.</div>`;
+  if(auswahl.typ==="akt"){
+    const a = zustand.aktivitaeten.find(x => String(x.id)===String(auswahl.id));
+    if(!a) return "";
+    return `<div class="karte detail"><div class="augenbraue">${datumKurz(a.datum)} · nicht geplant</div>
+      <h2><span class="punkt gross" style="background:${SPORT_FARBEN[a.sport]||"#BDB7AD"}"></span>${esc(a.name || SPORT_NAMEN[a.sport])}</h2>
+      ${aktivitaetHtml(a)}${a.sport==="kraft" ? zustand.kraft.filter(k => k.datum===a.datum).map(k => kraftHtml({datum:k.datum, art:k.einheit})).join("") : ""}</div>`;
+  }
+  const e = zustand.plan.find(x => x.id===auswahl.id);
+  if(!e) return "";
+  const fertig = erledigtDurch(e);
+  const gestrichen = e.status==="gestrichen";
+  const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "");
+  const pille = e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : "";
+  // Ampel-Varianten: heute die passende hervorheben
+  const heuteFarbe = e.datum===HEUTE ? tagesAmpel().farbe : null;
+  const v = e.varianten || {};
+  const varianten = Object.keys(v).length ? `<div class="d-abschnitt"><div class="augenbraue">Je nach Ampel</div>${
+    ["gruen","gelb","rot"].filter(f => v[f]).map(f => `<div class="d-variante ${heuteFarbe===f ? "aktiv" : ""}" style="border-color:${AMPEL[f].farbe};${heuteFarbe===f ? `background:${AMPEL[f].tint}` : ""}">
+      <b style="color:${f==="gelb" ? "#B7800C" : AMPEL[f].farbe}">${AMPEL[f].wort}${heuteFarbe===f ? " · heute" : ""}</b><div>${esc(v[f])}</div></div>`).join("")}</div>` : "";
+  const verlauf = [];
+  if(e.verschoben_von) verlauf.push(`Verschoben von ${datumKurz(e.verschoben_von)}`);
+  if(e.verkuerzt) verlauf.push(e.dauer_min_original ? `Verkürzt von ${e.dauer_min_original} auf ${e.dauer_min} min` : "Verkürzt");
+  if(e.umgewandelt_von) verlauf.push(`Umgewandelt aus: ${e.umgewandelt_von.titel || SPORT_NAMEN[e.umgewandelt_von.sport]}`);
+  if(gestrichen) verlauf.push("Gestrichen");
+  const regel = gestrichen ? [] : verstoesse(e, e.datum);
+  const kraftKnopf = e.art && zustand.uebungen[e.art] && e.datum<=HEUTE && !gestrichen
+    ? `<button class="knopf hell" data-detail="log">${zustand.kraft.some(k => k.datum===e.datum && k.einheit===e.art) ? "Kraft-Log ansehen" : "Training eintragen"}</button>` : "";
+  return `<div class="karte detail">
+    <div class="d-kopf"><div><div class="augenbraue">${datumKurz(e.datum)}${fertig ? " · ✓ erledigt" : ""}</div>
+      <h2 class="${gestrichen ? "durch" : ""}"><span class="punkt gross" style="background:${SPORT_FARBEN[e.sport]||"#BDB7AD"}"></span>${esc(kurzTitel(e))}</h2>
+      <div class="d-meta">${esc(SPORT_NAMEN[e.sport]||"")}${umfang ? " · " + esc(umfang) : ""} ${pille}</div></div></div>
+    ${e.details ? `<p class="d-text">${esc(e.details)}</p>` : ""}
+    ${regel.length ? `<div class="warnung"><b>Regelhinweis:</b><ul>${regel.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+    ${verlauf.length ? `<div class="d-verlauf">${verlauf.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
+    ${(() => { const spalten = [varianten, (fertig ? aktivitaetHtml(fertig) : "") + kraftHtml(e)].filter(Boolean);
+      return `<div class="d-raster ${spalten.length < 2 ? "einspaltig" : ""}">${spalten.map(x => `<div>${x}</div>`).join("")}</div>`; })()}
+    <div class="d-aktionen">
+      ${kraftKnopf}
+      ${gestrichen ? `<button class="knopf" data-detail="wieder">Wiederherstellen</button>` : `
+      <button class="knopf hell" data-detail="verschieben">Verschieben</button>
+      <button class="knopf hell" data-detail="kuerzen">Verkürzen</button>
+      <button class="knopf hell" data-detail="umwandeln">Umwandeln</button>
+      <button class="knopf hell warn-text" data-detail="streichen">Streichen</button>`}
+    </div></div>`;
+}
+function bindeDetail(){
+  if(!auswahl || auswahl.typ!=="plan") return;
+  const e = zustand.plan.find(x => x.id===auswahl.id);
+  if(!e) return;
+  document.querySelectorAll("[data-detail]").forEach(b => b.onclick = () => ({
+    log: () => zeigeKraftLog(e.id),
+    verschieben: () => zeigeVerschieben(e),
+    kuerzen: () => zeigeKuerzen(e),
+    umwandeln: () => zeigeUmwandeln(e),
+    streichen: () => aenderePlan(e.id, ersetzeEinheit(e.id, x => ({...x, status:"gestrichen"})), `Plan: ${kurzTitel(e)} am ${e.datum} gestrichen`),
+    wieder: () => aenderePlan(e.id, ersetzeEinheit(e.id, x => ({...x, status: x.verschoben_von ? "verschoben" : "geplant"})), `Plan: ${kurzTitel(e)} wiederhergestellt`)
+  }[b.dataset.detail])());
 }
 
 function kalenderEinheit(e){
@@ -888,25 +1041,27 @@ function oeffneAktionen(id){
 }
 
 function verschiebe(e, ziel){
+  auswahl = {typ:"plan", id:e.id};
+  wochenVersatz = Math.round(tageZwischen(montag(HEUTE), montag(ziel)) / 7);
   return aenderePlan(e.id, ersetzeEinheit(e.id, x => ({...x, verschoben_von: x.verschoben_von || x.datum, datum: ziel, status: "verschoben"})),
     `Plan: ${kurzTitel(e)} von ${e.datum} auf ${ziel} verschoben`);
 }
 
 function zeigeVerschieben(e){
-  const ab = [HEUTE, montag(e.datum)].sort().pop();  // ab Wochenanfang der Einheit, aber nie in der Vergangenheit
-  const tage = [...Array(14)].map((_, i) => plusTage(ab, i)).filter(d => d!==e.datum);
+  // 7 Tage zurück (z. B. schon früher gemacht) bis 14 Tage nach vorne
+  const tage = [...Array(22)].map((_, i) => plusTage(e.datum, i-7)).filter(d => d!==e.datum);
   const s = sheet(`<div class="sheet-kopf"><div><div class="augenbraue">Verschieben</div><h2>${esc(kurzTitel(e))}</h2>
       <div class="klein-grau">bisher ${datumKurz(e.datum)}</div></div><button class="sheet-zu" aria-label="Schließen">×</button></div>
     <div class="tag-wahl">${tage.map(d => {
       const v = verstoesse(e, d).length;
-      return `<button data-ziel="${d}" class="${v ? "konflikt" : ""}">${datumKurz(d)}${v ? `<span>⚠︎</span>` : ""}</button>`; }).join("")}</div>
+      return `<button data-ziel="${d}" class="${v ? "konflikt" : ""} ${d<HEUTE ? "vorbei" : ""} ${d===HEUTE ? "heute" : ""}">${datumKurz(d)}${v ? `<span>⚠︎</span>` : ""}</button>`; }).join("")}</div>
     <div class="klein-grau" style="margin-top:10px">⚠︎ = verletzt eine Trainingsregel</div>
     <div id="pruefung"></div><div class="sheet-fehler"></div>`);
   s.querySelector(".sheet-zu").onclick = schliesseSheet;
   s.querySelectorAll("[data-ziel]").forEach(b => b.onclick = () => {
     const ziel = b.dataset.ziel, v = verstoesse(e, ziel);
     if(!v.length) return verschiebe(e, ziel);
-    const vorschlag = naechsterFreierTag(e, ziel);
+    const vorschlag = naechsterFreierTag(e, ziel, e.datum);
     s.querySelector("#pruefung").innerHTML = `<div class="warnung"><b>${datumKurz(ziel)} passt nicht ganz:</b>
       <ul>${v.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
       <div class="sheet-aktionen">
@@ -1007,6 +1162,7 @@ function oeffneNeu(datum){
     x.status = "geplant";
     if(vorlage){ x.varianten = structuredClone(vorlage.varianten); if(vorlage.details) x.details = vorlage.details; if(!x.dauer_min && vorlage.umfang) x.umfang = vorlage.umfang; }
     Object.keys(x).forEach(k => x[k]===undefined && delete x[k]);
+    auswahl = {typ:"plan", id:x.id};
     aenderePlan(x.id, plan => plan.concat(x), `Plan: ${x.titel} am ${datum} hinzugefügt`);
   };
 }
