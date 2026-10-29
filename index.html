@@ -129,7 +129,10 @@ textarea.text{width:100%;min-height:70px;font:inherit;padding:12px;border-radius
 .reiter button{appearance:none;border:0;background:none;font:inherit;font-size:14px;font-weight:650;color:var(--grau);padding:7px 16px;border-radius:9px;cursor:pointer}
 .reiter button.an{background:var(--karte);color:var(--tinte);box-shadow:0 1px 2px rgba(0,0,0,.06)}
 /* Kalender */
-.k-nav{display:flex;align-items:center;gap:10px;margin:10px 4px 16px}
+.k-nav{display:flex;align-items:center;gap:10px;margin:10px 4px 16px;flex-wrap:wrap}
+.k-nav h1{white-space:nowrap}
+#k-planen{width:auto;height:40px;padding:0 16px;font-size:14px}
+@media (max-width: 899px){ #k-planen{order:9;flex-basis:100%;margin-left:0 !important} }
 .k-nav .knopf{width:40px;height:40px;padding:0;font-size:20px}
 .k-woche{display:flex;flex-direction:column;gap:8px}
 .k-tag{background:var(--karte);border-radius:16px;padding:12px 14px}
@@ -194,6 +197,34 @@ ul.punkte li{margin:3px 0}
 .ruhe-heute{display:flex;gap:12px;align-items:center}
 .ruhe-heute svg{flex:none;width:110px}
 
+/* Wochenplanung */
+.wp-zahlen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.wp-zahlen div{background:var(--feld);border-radius:12px;padding:10px;display:flex;flex-direction:column}
+.wp-zahlen b{font-size:20px}
+.wp-zahlen span{font-size:12px;color:var(--grau);line-height:1.3}
+.wp-zeile{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
+.wp-chip{display:inline-flex;align-items:center;gap:6px;background:var(--feld);border-radius:999px;padding:4px 10px;font-size:13px}
+.wp-chip .punkt{margin:0}
+.wp-hinweis{display:inline-block;background:var(--gelb-t);border-radius:999px;padding:4px 10px;font-size:13px;margin:10px 6px 0 0}
+.wp-tag{padding:8px 0;border-top:1px solid var(--linie);display:grid;grid-template-columns:62px minmax(0,1fr);gap:4px 8px;align-items:center}
+.wp-tag .wp-tag-name{margin:0;color:var(--tinte)}
+.wp-tag .wp-tag-name span{display:block;font-size:11px;font-weight:600;color:var(--grau);letter-spacing:0}
+.wp-tag .wp-flags{grid-column:2;margin-top:0}
+.wp-tag:first-of-type{border-top:0}
+.wp-tag-name{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--grau);margin-bottom:6px}
+.wp-zeit{flex-wrap:nowrap;gap:4px}
+.wp-zeit button{padding:8px 2px;font-size:12px;min-width:0;border-radius:10px}
+.wp-flags button{padding:3px 10px !important;font-size:12px !important}
+.wp-flags{display:flex;gap:6px;margin-top:6px}
+.wp-flags button{appearance:none;border:1px solid var(--linie);background:none;border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;color:var(--grau);cursor:pointer}
+.wp-flags button.an{background:var(--tinte);border-color:var(--tinte);color:#fff}
+.wp-vtag{display:grid;grid-template-columns:76px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--linie)}
+.wp-vtag:first-of-type{border-top:0}
+.wp-einheit{display:flex;align-items:center;gap:10px;background:var(--feld);border-radius:12px;padding:8px 10px}
+.wp-einheit+.wp-einheit{margin-top:6px}
+.wp-einheit .punkt{margin:0}
+.wp-einheit.fest{opacity:.7}
+
 /* Bottom-Sheet */
 #sheet{position:fixed;inset:0;z-index:20}
 .sheet-hg{position:absolute;inset:0;background:rgba(29,28,26,.35)}
@@ -233,6 +264,8 @@ ul.punkte li{margin:3px 0}
   .k-titel{font-size:14px;line-height:1.3}
   .d-raster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
   .d-raster.einspaltig{grid-template-columns:minmax(0,1fr)}
+  .wp-tag{grid-template-columns:70px minmax(0,1fr) auto}
+  .wp-tag .wp-flags{grid-column:auto}
   .k-akt{display:grid;grid-template-columns:8px minmax(0,1fr);gap:8px;align-items:start;padding:8px 10px;font-size:13px;line-height:1.3}
   .k-akt .punkt{margin-top:5px}
   .d-aktionen .knopf{flex:0 0 auto;padding:10px 18px}
@@ -320,7 +353,7 @@ async function aendere(pfad, standard, aenderung, nachricht){
 }
 
 // ---------- Zustand ----------
-const zustand = {plan:[], bericht:null, uebungen:{}, kraft:[], checkins:[], aktivitaeten:[], einstellungen:{}};
+const zustand = {plan:[], bericht:null, uebungen:{}, kraft:[], checkins:[], aktivitaeten:[], einstellungen:{}, wochen:[]};
 
 async function pruefeZugriff(){
   const res = await fetch("https://api.github.com/repos/" + REPO, {cache:"no-store",
@@ -334,17 +367,18 @@ async function pruefeZugriff(){
 
 async function ladeAlles(){
   await pruefeZugriff();
-  const [plan, bericht, uebungen, kraft, checkins, aktivitaeten, einstellungen] = await Promise.all([
+  const [plan, bericht, uebungen, kraft, checkins, aktivitaeten, einstellungen, wochen] = await Promise.all([
     ladeJson("daten/plan.json", []),
     ladeJson("daten/berichte/" + HEUTE + ".json", null),
     ladeJson("daten/uebungen.json", {}),
     ladeJson("daten/kraft.json", []),
     ladeJson("daten/checkins.json", []),
     ladeJson("daten/aktivitaeten.json", []),
-    ladeJson("einstellungen.json", {})
+    ladeJson("einstellungen.json", {}),
+    ladeJson("daten/wochen.json", [])
   ]);
   zustand.plan = plan.daten; zustand.bericht = bericht.daten; zustand.uebungen = uebungen.daten; zustand.kraft = kraft.daten;
-  zustand.checkins = checkins.daten; zustand.aktivitaeten = aktivitaeten.daten; zustand.einstellungen = einstellungen.daten;
+  zustand.checkins = checkins.daten; zustand.aktivitaeten = aktivitaeten.daten; zustand.einstellungen = einstellungen.daten; zustand.wochen = wochen.daten;
 }
 
 // ---------- Ansichten ----------
@@ -401,6 +435,14 @@ function tagesAmpel(){
   return t;
 }
 
+function planenKarte(){
+  const wt = new Date(HEUTE+"T12:00:00").getDay();  // 0 = So, 6 = Sa
+  const naechste = plusTage(montag(HEUTE), 7);
+  if(![0,6].includes(wt) || zustand.wochen.some(w => w.start===naechste)) return "";
+  return `<div class="karte checkin-start"><div><span class="augenbraue">${wt===0 ? "Heute ist Sonntag" : "Wochenende"}</span>
+    <div style="margin-top:6px">Zeit, die nächste Woche zu planen.</div></div>
+    <button class="knopf" id="zur-planung">Planen</button></div>`;
+}
 function checkinKarte(t){
   const c = t.checkin;
   if(!c) return `<div class="karte checkin-start"><div><span class="augenbraue">Morgen-Check-in</span>
@@ -522,12 +564,13 @@ function zeigeHeute(){
     ${reiter("heute")}
     <h1>${WOCHENTAGE[d.getDay()]}, ${d.getDate()}.${d.getMonth()+1}.</h1>
     <div class="raster">
-      <div class="spalte">${t.checkin ? ampelKarte(t) + checkinKarte(t) : checkinKarte(t) + ampelKarte(t)}</div>
+      <div class="spalte">${planenKarte()}${t.checkin ? ampelKarte(t) + checkinKarte(t) : checkinKarte(t) + ampelKarte(t)}</div>
       <div class="spalte"><div class="karte"><span class="augenbraue">Heute & die nächsten Tage</span>${tage}</div></div>
     </div>
     <div class="fuss"><button id="abmelden">Token auf diesem Gerät entfernen</button></div>`;
   document.querySelectorAll("[data-log]").forEach(k => k.onclick = () => zeigeKraftLog(k.dataset.log));
   $("#zum-checkin").onclick = zeigeCheckin;
+  if($("#zur-planung")) $("#zur-planung").onclick = zeigeWochenplanung;
   bindeReiter();
   $("#abmelden").onclick = () => { if(confirm("Token auf diesem Gerät entfernen?")){ schreib(TOKEN_KEY, null); zeigeEinrichtung(); } };
 }
@@ -822,9 +865,9 @@ function paarVerstoesse(a, b){
   return out;
 }
 // Alle Verstöße, die eine Einheit an einem Zieldatum hätte
-function verstoesse(e, ziel){
+function verstoesse(e, ziel, liste=zustand.plan){
   const neu = {...e, datum: ziel};
-  const andere = zustand.plan.filter(x => x.id!==e.id && x.status!=="gestrichen" && Math.abs(tageZwischen(x.datum, ziel)) <= 2);
+  const andere = liste.filter(x => x.id!==e.id && x.status!=="gestrichen" && Math.abs(tageZwischen(x.datum, ziel)) <= 2);
   const out = [];
   for(const o of andere){
     const [a, b] = tageZwischen(o.datum, ziel) >= 0 ? [o, neu] : [neu, o];
@@ -886,7 +929,8 @@ function zeigeKalender(){
     <div class="k-nav"><button class="knopf klein hell" id="k-zurueck" aria-label="Vorige Woche">‹</button>
       <h1 style="margin:0">KW ${kw}</h1>
       <button class="knopf klein hell" id="k-vor" aria-label="Nächste Woche">›</button>
-      ${wochenVersatz ? `<button class="link" id="k-heute">Diese Woche</button>` : ""}</div>
+      ${wochenVersatz ? `<button class="link" id="k-heute">Diese Woche</button>` : ""}
+      <button class="knopf klein" id="k-planen" style="margin-left:auto">Woche planen</button></div>
     <div class="k-woche">${spalten}</div>
     <p class="klein-grau" style="text-align:center;margin:10px 0 16px">Tippe auf eine Einheit für Details. ✓ = laut Garmin erledigt.</p>
     <div id="k-detail">${detailKarte()}</div>`;
@@ -894,6 +938,7 @@ function zeigeKalender(){
   $("#k-zurueck").onclick = () => { wochenVersatz--; zeigeKalender(); };
   $("#k-vor").onclick = () => { wochenVersatz++; zeigeKalender(); };
   if($("#k-heute")) $("#k-heute").onclick = () => { wochenVersatz = 0; zeigeKalender(); };
+  $("#k-planen").onclick = zeigeWochenplanung;
   const waehle = (neu) => {
     auswahl = neu; zeigeKalender();
     const d = $("#k-detail"); if(d && window.innerWidth < 900) d.scrollIntoView({behavior:"smooth", block:"start"});
@@ -1261,6 +1306,345 @@ function oeffneNeu(datum){
     auswahl = {typ:"plan", id:x.id};
     aenderePlan(x.id, plan => plan.concat(x), `Plan: ${x.titel} am ${datum} hinzugefügt`);
   };
+}
+
+// ---------- Wochenplanung (Sonntag) ----------
+// Phasen laut Konzept: bis Ende Februar Grundlage, dann Aufbau, dann Wettkampf/Taper
+const PHASEN = [{bis:"2027-02-28", name:"Grundlage"}, {bis:"2027-05-31", name:"Aufbau"}, {bis:"2027-06-13", name:"Wettkampf"}];
+function phase(datum){ return (PHASEN.find(p => datum <= p.bis) || {name:"Nach dem Wettkampf"}).name; }
+const WOCHENTAGE_LANG = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+const ZEIT = {keine:{l:"Keine", min:0}, kurz:{l:"Kurz", min:45}, normal:{l:"Normal", min:90}, viel:{l:"Viel", min:180}};
+
+function zielWoche(){ const m = montag(HEUTE); return m===HEUTE ? m : plusTage(m, 7); }
+function minuten(e){
+  if(e.dauer_min) return e.dauer_min;
+  const z = String(e.umfang || "").match(/(\d+)\s*[–-]\s*(\d+)\s*min/);
+  if(z) return (Number(z[1]) + Number(z[2])) / 2;
+  const einzeln = String(e.umfang || "").match(/(\d+)\s*min/);
+  if(einzeln) return Number(einzeln[1]);
+  if(e.sport==="schwimmen") return 40;
+  return 45;
+}
+
+// ---------- Rückblick ----------
+function rueckblick(start){
+  const tage = [...Array(7)].map((_, i) => plusTage(start, i));
+  const imPlan = zustand.plan.filter(e => tage.includes(e.datum));
+  const geplant = imPlan.filter(e => e.status!=="gestrichen");
+  const erledigt = geplant.filter(e => erledigtDurch(e));
+  const akt = zustand.aktivitaeten.filter(a => tage.includes(a.datum) && a.sport!=="wechsel");
+  const stunden = {};
+  for(const a of akt) stunden[a.sport] = (stunden[a.sport] || 0) + (a.dauer_min || 0) / 60;
+  const cis = zustand.checkins.filter(c => tage.includes(c.datum));
+  const ampel = {gruen:0, gelb:0, rot:0};
+  for(const d of tage){
+    const c = cis.find(x => x.datum===d), b = wp.berichte[d];
+    const f = (c && c.farbe_final) || (b && b.farbe);
+    if(f) ampel[f]++;
+  }
+  // Rote Morgen nach harten Einheiten
+  const hartRot = geplant.filter(istSchwer).filter(e => {
+    const n = plusTage(e.datum, 1), c = cis.find(x => x.datum===n), b = wp.berichte[n];
+    return ((c && c.farbe_final) || (b && b.farbe))==="rot";
+  }).length;
+  const hrv = d => (wp.tage[d] || {}).hrv;
+  const woche = tage.map(hrv).filter(Boolean);
+  const vorher = [...Array(28)].map((_, i) => hrv(plusTage(start, -1-i))).filter(Boolean);
+  const mittel = l => l.length ? l.reduce((a,b) => a+b, 0) / l.length : null;
+  return {
+    start, tage, geplant: geplant.length, erledigt: erledigt.length,
+    gestrichen: imPlan.filter(e => e.status==="gestrichen").length,
+    verschoben: imPlan.filter(e => e.verschoben_von).length,
+    verkuerzt: imPlan.filter(e => e.verkuerzt).length,
+    planMin: geplant.reduce((s, e) => s + minuten(e), 0),
+    istMin: akt.reduce((s, a) => s + (a.dauer_min || 0), 0),
+    stunden, ampel, hartRot,
+    infektTage: cis.filter(c => c.infekt && c.infekt!=="nein").length,
+    knieUnruhig: cis.some(c => c.knie_ruhig===false || (c.knie ?? 0) > 3),
+    hrvWoche: mittel(woche), hrvVorher: mittel(vorher),
+    checkinTage: cis.length
+  };
+}
+
+function belastungswochenInFolge(vor){
+  const liste = (wp.wochen || []).filter(w => w.start < vor).sort((a,b) => a.start < b.start ? 1 : -1);
+  let n = 0;
+  for(const w of liste){ if(w.modus==="entlastung") break; n++; }
+  return n;
+}
+
+function empfehlung(r){
+  const st = regeln().steigerung || {};
+  const gruende = [];
+  let modus = "steigern";
+  const folge = belastungswochenInFolge(wp.ziel);
+  if(r.infektTage > 0){ modus = "entlastung"; gruende.push(`Infektgefühl an ${r.infektTage} Tag${r.infektTage>1?"en":""}`); }
+  else if(r.ampel.rot >= 3){ modus = "entlastung"; gruende.push(`${r.ampel.rot} rote Morgen`); }
+  else if(folge >= (st.entlastung_spaetestens_nach_wochen || 4) - 1){ modus = "entlastung"; gruende.push(`schon ${folge} Belastungswochen in Folge`); }
+  else if(r.ampel.rot + r.ampel.gelb >= 4){ modus = "halten"; gruende.push("überwiegend gelbe/rote Morgen"); }
+  else if(r.hrvWoche && r.hrvVorher && r.hrvWoche < r.hrvVorher * 0.95){ modus = "halten"; gruende.push("HRV unter deinem Schnitt"); }
+  if(modus==="steigern" && wp.gefuehl==="zu_hart"){ modus = "halten"; gruende.push("Woche fühlte sich zu hart an"); }
+  if(modus==="steigern") gruende.push(r.checkinTage ? "Werte und Check-ins sprechen nicht dagegen" : "keine Warnsignale in den Werten");
+  return {modus, gruende};
+}
+
+// Harte Einheiten erst steigern, wenn 3 Wochen ohne Infekt und ohne roten Morgen danach
+function hartSteigernErlaubt(){
+  const st = regeln().steigerung || {};
+  const n = st.hart_steigern_nach_wochen_ohne_infekt || 3;
+  let ok = 0;
+  for(let w=1; w<=n; w++){
+    const start = plusTage(wp.ziel, -7*w), r = rueckblick(start);
+    if(r.checkinTage < 4 || r.infektTage || r.hartRot) return false;
+    ok++;
+  }
+  return ok===n;
+}
+
+// ---------- Generator ----------
+function letzteDauer(sport, filter, tage=21){
+  const ab = plusTage(wp.ziel, -tage);
+  const l = zustand.aktivitaeten.filter(a => a.sport===sport && a.datum>=ab && a.datum<wp.ziel && (!filter || filter(a)));
+  return l.length ? Math.max(...l.map(a => a.dauer_min || 0)) : null;
+}
+const rund5 = x => Math.max(5, Math.round(x/5)*5);
+
+function vorlagen(modus, r){
+  const st = regeln().steigerung || {};
+  const plus = 1 + (st.locker_max_prozent_pro_woche || 10) / 100;
+  const entl = modus==="entlastung", steigern = modus==="steigern";
+  const ph = phase(wp.ziel);
+  // Laufen: Basis = zuletzt GEPLANTE Laufdauer (nicht die gelaufene – länger laufen als geplant soll
+  // nicht automatisch zur Steigerung führen). Ohne Plan: Median der letzten lockeren Läufe.
+  // nur Läufe, die VOR der Zielwoche geplant waren (verschobene zählen mit ihrem Ursprungsdatum),
+  // damit eine erneute Planung nicht doppelt steigert
+  const ursprung = e => e.verschoben_von || e.datum;
+  const geplanteLaeufe = zustand.plan.filter(e => e.sport==="laufen" && e.dauer_min && e.status!=="gestrichen" && e.woche!==wp.ziel
+    && ursprung(e) >= plusTage(wp.ziel, -28) && ursprung(e) < wp.ziel).sort((a,b) => ursprung(a) < ursprung(b) ? -1 : 1);
+  const echte = zustand.aktivitaeten.filter(a => a.sport==="laufen" && a.datum >= plusTage(wp.ziel, -21) && a.datum < wp.ziel)
+    .map(a => a.dauer_min).sort((a,b) => a-b);
+  let laufBasis = geplanteLaeufe.length ? geplanteLaeufe[geplanteLaeufe.length-1].dauer_min
+    : echte.length ? echte[Math.floor(echte.length/2)] : 25;
+  laufBasis = Math.round(laufBasis);
+  const knieOk = !r.knieUnruhig;
+  const lauf1 = entl ? Math.round(laufBasis*0.8) : laufBasis;
+  const lauf2 = steigern && knieOk ? Math.round(laufBasis*plus) : lauf1;
+  // Rad Z2 lang: Basis = längste Radeinheit der letzten 3 Wochen, 90–160 min
+  let radBasis = letzteDauer("rad", a => (a.dauer_min || 0) >= 60) || 90;
+  radBasis = Math.min(160, Math.max(90, radBasis));
+  const radLang = entl ? rund5(radBasis*0.7) : steigern ? Math.min(160, rund5(radBasis*plus)) : rund5(radBasis);
+  const schwelleMehr = !entl && ph!=="Grundlage" && (hartSteigernErlaubt() || wp.gefuehl==="zu_leicht");
+  const tagA = zustand.plan.filter(e => e.art==="kraft_tag_a" && Array.isArray(e.details)).slice(-1)[0];
+  const tagAVoll = tagA ? tagA.varianten.gruen || tagA.details : ["Aktivierung mit Miniband","Beinpresse einbeinig","Beinstrecker","Einbeiniger RDL","Step-Downs","Einbeinige Hip Thrusts","Seitliches Beinheben","Physio-Übungen","Hüft- und Rumpfübungen"];
+  const tagAGelb = tagA && tagA.varianten.gelb ? tagA.varianten.gelb : tagAVoll;
+  const tagARot = tagA && tagA.varianten.rot ? tagA.varianten.rot : ["Aktivierung mit Miniband","Physio-Übungen","Seitliches Beinheben","Hüft- und Rumpfübungen","Mobility"];
+  const tagB = ["Rows","Lat-Pulldown","Face Pulls","Seitliches Beinheben","Tibialis","Rumpf","Physio-Übungen"];
+  const tagBGelb = ["Rows – etwas weniger Gewicht","Lat-Pulldown – etwas weniger Gewicht","Face Pulls","Seitliches Beinheben","Tibialis","Rumpf","Physio-Übungen","Insgesamt eher 40 min"];
+  const tagBRot = ["Rumpf","Physio-Übungen","Mobility","Ca. 20–30 min"];
+  const swim = zustand.plan.filter(e => e.sport==="schwimmen" && e.varianten).slice(-1)[0];
+  const swimNormal = swim && Array.isArray(swim.details) ? swim.details : ["300 m einschwimmen","6×50 m Technik","Intervalle 100–200 m (je nach Befinden)","300 m ausschwimmen"];
+  const swimV = swim ? swim.varianten : {
+    gruen:["300 m einschwimmen","6×50 m Technik","4×150 m zügig in Grundlage (20 s Pause)","300 m ausschwimmen","Gesamt ca. 1.500 m"],
+    gelb:["300 m einschwimmen","6×50 m Technik","1×200 m entspannt","300 m ausschwimmen","Gesamt ca. 1.100 m"],
+    rot:["300 m einschwimmen","6×50 m Technik, ruhig","200 m ausschwimmen","Gesamt ca. 800 m"]};
+  const laufDetails = (d, steig) => ["Flach","Puls unter ca. 150","Knie max. 3/10, darf nicht zunehmen",
+    steig ? `Nicht länger als ${d} min – auch wenn es sich gut anfühlt` : "Nicht länger als geplant laufen"];
+  const laufVar = d => ({gelb:[`Auf ${Math.round(d*0.8)} min kürzen`, "Sehr locker"], rot:["Lauf verschieben","Stattdessen Spaziergang oder Mobility"]});
+  const L = [
+    {typ:"tag_a", tag:0, prio:1, sport:"kraft", art:"kraft_tag_a", titel:"Gym – Tag A", umfang: entl ? "ca. 45 min" : "ca. 45–60 min",
+      intensitaet: entl ? "mittel" : "hart", details: entl ? tagAGelb : tagAVoll,
+      varianten: entl ? {gruen:tagAGelb, gelb:tagAGelb, rot:tagARot} : {gruen:tagAVoll, gelb:tagAGelb, rot:tagARot}},
+    entl
+      ? {typ:"rad_locker", tag:3, prio:2, sport:"rad", titel:"Rad locker (Entlastung statt Schwelle)", dauer_min:45, intensitaet:"locker",
+          details:["45 min Zone 1–2","Keine Intervalle"], varianten:{rot:["Verschieben oder 30 min ganz locker"]}}
+      : {typ:"schwelle", tag:3, prio:2, sport:"rad", art:"rad_schwelle", titel:"Rad-Schwelle", umfang:"ca. 60 min", intensitaet:"hart",
+          details:["Locker einfahren", schwelleMehr ? "3×10 min Stufe 5, mind. 95 upm, Puls 172–178" : "3×8 min Stufe 5, mind. 95 upm, Puls 172–178", "Lockere Pausen dazwischen", "Locker ausfahren"],
+          varianten:{gelb:["Locker einfahren","2×8 min Stufe 5","Locker ausfahren"], rot:["Keine Intervalle","Höchstens 30–40 min locker in Zone 1–2 oder verschieben"]}},
+    {typ:"lauf1", tag:2, prio:3, sport:"laufen", titel:"Lauf 1 – locker", dauer_min:lauf1, intensitaet:"locker", details:laufDetails(lauf1, false), varianten:laufVar(lauf1)},
+    {typ:"rad_lang", tag:6, prio:4, sport:"rad", titel:"Rad Z2 lang", dauer_min:radLang, intensitaet:"locker",
+      details:[`${radLang} min Zone 2`, "Puls 145–160", ...(radLang > 120 ? ["Rücken und rechten Fuß beobachten"] : [])],
+      varianten:{gelb:[`Auf ${rund5(radLang*0.7)} min kürzen`, "Puls eher 140–150"], rot:["Verschieben oder 30–40 min ganz locker"]}},
+    {typ:"lauf2", tag:5, prio:5, sport:"laufen", titel: lauf2 > lauf1 ? "Lauf 2 – locker (+ Steigerung)" : "Lauf 2 – locker", dauer_min:lauf2, intensitaet:"locker",
+      details:laufDetails(lauf2, lauf2 > lauf1), varianten:laufVar(lauf2)},
+    {typ:"tag_b", tag:4, prio:6, sport:"kraft", art:"kraft_tag_b", titel:"Gym – Tag B", umfang: entl ? "ca. 40 min" : "ca. 45 min", intensitaet:"mittel",
+      details: entl ? tagBGelb : tagB, varianten:{gruen:tagB, gelb:tagBGelb, rot:tagBRot}},
+    {typ:"schwimmen", tag:4, prio:7, sport:"schwimmen", titel:"Schwimmen", umfang:"ca. 0,8–1,5 km", intensitaet:"locker",
+      details: entl ? swimV.gelb : swimNormal, varianten: swimV}
+  ];
+  return {liste: L, info:{laufBasis, lauf1, lauf2, radBasis, radLang, knieOk, schwelleMehr}};
+}
+
+function baueWoche(){
+  const r = wp.rueck, modus = wp.modus;
+  const {liste, info} = vorlagen(modus, r);
+  const tage = [...Array(7)].map((_, i) => plusTage(wp.ziel, i));
+  // Bereits eingetragene Einheiten der Zielwoche bleiben und ersetzen passende Vorlagen
+  const fest = zustand.plan.filter(e => tage.includes(e.datum) && e.status!=="gestrichen");
+  const vorhanden = [...fest];
+  const nimmFest = (pred) => { const i = vorhanden.findIndex(pred); if(i<0) return false; vorhanden.splice(i,1); return true; };
+  const offen = liste.filter(v => !(
+      v.art ? nimmFest(e => e.art===v.art)
+    : v.typ.startsWith("lauf") ? nimmFest(e => e.sport==="laufen")
+    : v.typ==="schwimmen" ? nimmFest(e => e.sport==="schwimmen")
+    : v.typ==="rad_lang" ? nimmFest(e => e.sport==="rad" && !e.art && minuten(e) >= 75)
+    : false));
+  const neu = [], nichtUntergebracht = [];
+  const belegt = d => [...fest, ...neu].filter(e => e.datum===d);
+  const kapazitaet = d => ZEIT[wp.verf[tage.indexOf(d)].zeit].min;
+  const passt = (e, d) => {
+    const v = wp.verf[tage.indexOf(d)];
+    if(v.zeit==="keine") return false;
+    const l = belegt(d);
+    if(l.length >= 2) return false;
+    if(e.sport!=="mobilitaet" && l.some(x => x.sport===e.sport)) return false;  // höchstens eine Einheit je Sportart am Tag
+    if(l.reduce((s, x) => s + minuten(x), 0) + minuten(e) > kapazitaet(d)) return false;
+    return !verstoesse({...e, id:"__neu"}, d, [...fest, ...neu]).length;
+  };
+  for(const v of offen.sort((a,b) => a.prio - b.prio)){
+    const kandidaten = [0,1,-1,2,-2,3,-3,4,-4,5,-5,6,-6].map(k => v.tag + k).filter(t => t>=0 && t<7);
+    let ziel = kandidaten.map(t => tage[t]).find(d => passt(v, d));
+    let e = {...v};
+    if(!ziel && v.dauer_min){
+      // Notfalls gekürzt auf einen kurzen Tag
+      for(const d of kandidaten.map(t => tage[t])){
+        const frei = kapazitaet(d) - belegt(d).reduce((s, x) => s + minuten(x), 0);
+        if(frei >= 20){ const k = {...v, dauer_min: Math.min(v.dauer_min, frei), verkuerzt:true, details:[...v.details, "Wegen wenig Zeit gekürzt"]};
+          if(passt(k, d)){ ziel = d; e = k; break; } }
+      }
+    }
+    if(!ziel){ nichtUntergebracht.push(v); continue; }
+    const tagIndex = tage.indexOf(ziel);
+    if(wp.verf[tagIndex].spontan){ e.details = [...e.details, `${WOCHENTAGE_LANG[tagIndex]} spontan – nur wenn es passt`]; e.optional = true; }
+    neu.push({...e, datum: ziel});
+  }
+  // An Reisetagen ohne Einheit: kurze Bewegung (laut Profil hilft das)
+  tage.forEach((d, i) => {
+    if(wp.verf[i].reise && !belegt(d).length) neu.push({typ:"reise", sport:"mobilitaet", titel:"Kurze Bewegung (Reisetag)", dauer_min:20, intensitaet:"locker",
+      details:["Spaziergang oder Mobility","Knee-to-Wall"], datum:d});
+  });
+  const eintraege = neu.map(e => {
+    const {typ, tag, prio, ...rest} = e;
+    return {...rest, id:`${e.datum}-${typ}`, status:"geplant", woche: wp.ziel};
+  }).sort((a,b) => a.datum < b.datum ? -1 : 1);
+  return {eintraege, fest, nichtUntergebracht, info};
+}
+
+// ---------- Ansicht ----------
+let wp = null;
+async function zeigeWochenplanung(){
+  $("#leiste").hidden = true;
+  $("#app").innerHTML = `<div class="karte leer">Lade Rückblick …</div>`;
+  const ziel = zielWoche(), rueck = plusTage(ziel, -7);
+  const tageR = [...Array(7)].map((_, i) => plusTage(rueck, i));
+  const [tageswerte, wochen, ...berichte] = await Promise.all([
+    ladeJson("daten/tageswerte.json", []), ladeJson("daten/wochen.json", []),
+    ...tageR.map(d => ladeJson("daten/berichte/" + d + ".json", null))]);
+  const verfVorher = (wochen.daten.find(w => w.start===ziel) || {}).verfuegbarkeit;
+  wp = {ziel, rueckStart: rueck, tage: Object.fromEntries(tageswerte.daten.map(t => [t.datum, t])), wochen: wochen.daten,
+        berichte: Object.fromEntries(tageR.map((d, i) => [d, berichte[i].daten])), gefuehl: null,
+        verf: verfVorher || [...Array(7)].map((_, i) => ({zeit: i===6 ? "viel" : "normal", reise:false, spontan: i===4}))};
+  wp.rueck = rueckblick(rueck);
+  const e = empfehlung(wp.rueck);
+  wp.empfehlung = e; wp.modus = e.modus;
+  zeichneWochenplanung();
+}
+
+function zeichneWochenplanung(){
+  const r = wp.rueck, ph = phase(wp.ziel);
+  const zielEnde = plusTage(wp.ziel, 6);
+  const std = x => String(Math.round(x/6)/10).replace(".", ",");
+  const sportZeilen = Object.entries(r.stunden).sort((a,b) => b[1]-a[1])
+    .map(([k,v]) => `<span class="wp-chip"><span class="punkt" style="background:${SPORT_FARBEN[k]||"#BDB7AD"}"></span>${esc(SPORT_NAMEN[k]||k)} ${String(Math.round(v*10)/10).replace(".", ",")} h</span>`).join("");
+  const ampelChips = ["gruen","gelb","rot"].filter(f => r.ampel[f]).map(f => `<span class="pille ${AMPEL[f].klasse}">${r.ampel[f]}× ${AMPEL[f].wort}</span>`).join(" ") || `<span class="klein-grau">noch keine Daten</span>`;
+  const hrv = r.hrvWoche ? `${Math.round(r.hrvWoche)} ms` + (r.hrvVorher ? ` <span class="klein-grau">(sonst Ø ${Math.round(r.hrvVorher)})</span>` : "") : "–";
+  const rueckHtml = `<div class="karte"><span class="augenbraue">Rückblick · ${datumKurz(r.start)}–${datumKurz(plusTage(r.start,6))}</span>
+    <div class="wp-zahlen">
+      <div><b>${r.erledigt}/${r.geplant}</b><span>Einheiten erledigt</span></div>
+      <div><b>${std(r.istMin)} h</b><span>trainiert (geplant ${std(r.planMin)} h)</span></div>
+      <div><b>${r.hrvWoche ? Math.round(r.hrvWoche) + " ms" : "–"}</b><span>HRV Ø Woche${r.hrvVorher ? ` (sonst ${Math.round(r.hrvVorher)})` : ""}</span></div>
+    </div>
+    <div class="wp-zeile">${sportZeilen || `<span class="klein-grau">Keine Garmin-Aktivitäten</span>`}</div>
+    <div class="wp-zeile"><span class="klein-grau">Morgen-Ampel:</span> ${ampelChips}</div>
+    ${[r.verschoben ? `${r.verschoben}× verschoben` : "", r.verkuerzt ? `${r.verkuerzt}× verkürzt` : "", r.gestrichen ? `${r.gestrichen}× gestrichen` : "",
+       r.infektTage ? `${r.infektTage}× Infektgefühl` : "", r.knieUnruhig ? "Knie/Hüfte war auffällig" : ""].filter(Boolean)
+       .map(x => `<span class="wp-hinweis">${esc(x)}</span>`).join("")}
+  </div>`;
+  const modusText = {steigern:"Steigern", halten:"Halten", entlastung:"Entlastung"};
+  const modusErkl = {
+    steigern:"Lockere Einheiten um höchstens 10 % länger, harte bleiben vorerst gleich.",
+    halten:"Umfang wie diese Woche, nichts steigern.",
+    entlastung:"Rund 20–30 % weniger Umfang, Schwelle wird locker, Tag A leichter."};
+  const empfHtml = `<div class="karte"><span class="augenbraue">Empfehlung für ${datumKurz(wp.ziel)}–${datumKurz(zielEnde)} · Phase ${esc(ph)}</span>
+    <div class="segment text" id="wp-modus">${Object.entries(modusText).map(([k,l]) => `<button type="button" data-wert="${k}" class="${wp.modus===k?"an":""}">${l}${wp.empfehlung.modus===k?" ★":""}</button>`).join("")}</div>
+    <p style="margin:12px 0 4px">${esc(modusErkl[wp.modus])}</p>
+    <p class="klein-grau" style="margin:0">★ Empfehlung, weil: ${esc(wp.empfehlung.gruende.join(", "))}.</p>
+  </div>`;
+  const gefuehlHtml = ph==="Grundlage" ? "" : `<div class="karte"><span class="augenbraue">Wie hat sich die Woche angefühlt?</span>
+    <div class="segment text" id="wp-gefuehl">${[["zu_leicht","Zu leicht"],["passend","Passend"],["zu_hart","Zu hart"]].map(([k,l]) => `<button type="button" data-wert="${k}" class="${wp.gefuehl===k?"an":""}">${l}</button>`).join("")}</div></div>`;
+  const verfHtml = `<div class="karte"><span class="augenbraue">Verfügbarkeit</span>
+    ${wp.verf.map((v, i) => `<div class="wp-tag">
+      <div class="wp-tag-name">${WOCHENTAGE_LANG[i].slice(0,2)}<span>${datumKurz(plusTage(wp.ziel,i)).slice(3)}</span></div>
+      <div class="segment text wp-zeit" data-tag="${i}">${Object.entries(ZEIT).map(([k,z]) => `<button type="button" data-wert="${k}" class="${v.zeit===k?"an":""}">${z.l}</button>`).join("")}</div>
+      <div class="wp-flags" data-tag="${i}">
+        <button type="button" data-flag="reise" class="${v.reise?"an":""}">Reisetag</button>
+        <button type="button" data-flag="spontan" class="${v.spontan?"an":""}">Spontan</button></div>
+    </div>`).join("")}
+    <p class="klein-grau" style="margin:10px 0 0">Kurz = bis 45 min, Normal = bis 90 min, Viel = mehr. „Spontan“ markiert Einheiten als optional.</p></div>`;
+  wp.ergebnis = baueWoche();
+  const g = wp.ergebnis;
+  const vorschlagHtml = `<div class="karte"><span class="augenbraue">Vorschlag</span>
+    ${[...Array(7)].map((_, i) => {
+      const d = plusTage(wp.ziel, i);
+      const f = g.fest.filter(e => e.datum===d), n = g.eintraege.filter(e => e.datum===d);
+      const zeilen = [...f.map(e => ({e, fest:true})), ...n.map(e => ({e, fest:false}))].map(({e, fest}) => `<div class="wp-einheit ${fest?"fest":""}">
+          <span class="punkt" style="background:${SPORT_FARBEN[e.sport]||"#BDB7AD"}"></span>
+          <span class="k-text"><span class="k-titel">${esc(kurzTitel(e))}</span><span class="k-meta">${esc(e.dauer_min ? e.dauer_min + " min" : (e.umfang || ""))}${fest ? " · schon eingetragen" : ""}</span></span>
+          ${e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : ""}</div>`).join("");
+      return `<div class="wp-vtag"><div class="wp-tag-name">${datumKurz(d)}</div><div>${zeilen || `<span class="leer">Ruhetag</span>`}</div></div>`;
+    }).join("")}
+    ${g.nichtUntergebracht.length ? `<div class="warnung"><b>Nicht untergebracht:</b> ${esc(g.nichtUntergebracht.map(x => x.titel).join(", "))} – zu wenig Zeit oder Regelkonflikt. Mehr Zeit freigeben oder später im Kalender hinzufügen.</div>` : ""}
+    <p class="klein-grau" style="margin:10px 0 0">Lauf-Basis: ${g.info.laufBasis} min${g.info.lauf2 > g.info.lauf1 ? ` → Lauf 2 mit ${g.info.lauf2} min (+10 %)` : g.info.knieOk ? "" : " (keine Steigerung: Knie war auffällig)"} · Rad lang: ${g.info.radLang} min${g.info.schwelleMehr ? " · Schwelle: 3×10 statt 3×8 min" : ""}</p>
+  </div>`;
+  const schonGeplant = (wp.wochen || []).find(w => w.start===wp.ziel);
+  $("#app").innerHTML = `<button class="zurueck" id="zurueck">‹ Kalender</button>
+    <h1 style="margin-top:4px">Woche planen</h1>
+    ${schonGeplant ? `<div class="warnung" style="margin:0 0 12px">Diese Woche wurde schon geplant. Bereits eingetragene Einheiten bleiben erhalten; übernommen werden nur fehlende.</div>` : ""}
+    <div class="raster"><div class="spalte">${rueckHtml}${empfHtml}${gefuehlHtml}${verfHtml}</div><div class="spalte">${vorschlagHtml}</div></div>`;
+  $("#zurueck").onclick = zeigeKalender;
+  document.querySelectorAll("#wp-modus button").forEach(b => b.onclick = () => { wp.modus = b.dataset.wert; zeichneWochenplanung(); });
+  document.querySelectorAll("#wp-gefuehl button").forEach(b => b.onclick = () => {
+    wp.gefuehl = b.dataset.wert; const e = empfehlung(wp.rueck); wp.empfehlung = e; wp.modus = e.modus; zeichneWochenplanung(); });
+  document.querySelectorAll(".wp-zeit button").forEach(b => b.onclick = () => { wp.verf[+b.parentElement.dataset.tag].zeit = b.dataset.wert; zeichneWochenplanung(); });
+  document.querySelectorAll(".wp-flags button").forEach(b => b.onclick = () => { const v = wp.verf[+b.parentElement.dataset.tag]; v[b.dataset.flag] = !v[b.dataset.flag]; zeichneWochenplanung(); });
+  $("#leiste").hidden = false;
+  $("#status").textContent = `${g.eintraege.length} neue Einheiten für ${datumKurz(wp.ziel)}–${datumKurz(zielEnde)}`;
+  $("#speichern").textContent = "Woche übernehmen";
+  $("#speichern").onclick = speichereWoche;
+}
+
+async function speichereWoche(){
+  const knopf = $("#speichern"); knopf.disabled = true; $("#status").textContent = "Speichere …";
+  const g = wp.ergebnis;
+  try{
+    zustand.plan = await aendere("daten/plan.json", [], plan => {
+      const ids = new Set(plan.map(e => e.id));
+      return plan.concat(g.eintraege.filter(e => !ids.has(e.id))).sort((a,b) => a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0);
+    }, `Wochenplanung ${wp.ziel}: ${g.eintraege.length} Einheiten`);
+    const r = wp.rueck;
+    await aendere("daten/wochen.json", [], liste => liste.filter(w => w.start!==wp.ziel).concat({
+      start: wp.ziel, phase: phase(wp.ziel), modus: wp.modus, empfohlen: wp.empfehlung.modus, gruende: wp.empfehlung.gruende,
+      gefuehl_vorwoche: wp.gefuehl, verfuegbarkeit: wp.verf,
+      rueckblick: {start:r.start, geplant:r.geplant, erledigt:r.erledigt, plan_min:Math.round(r.planMin), ist_min:Math.round(r.istMin),
+                   ampel:r.ampel, infekt_tage:r.infektTage, hrv:r.hrvWoche ? Math.round(r.hrvWoche) : null},
+      basis: g.info, gespeichert: new Date().toISOString()
+    }).sort((a,b) => a.start < b.start ? -1 : 1), `Wochenplanung ${wp.ziel}`);
+    $("#speichern").textContent = "Speichern";
+    wochenVersatz = Math.round(tageZwischen(montag(HEUTE), wp.ziel) / 7);
+    auswahl = null;
+    zeigeKalender();
+  }catch(err){
+    $("#status").textContent = err.message==="token" ? "Token ungültig." : err.message;
+  }finally{ knopf.disabled = false; }
 }
 
 // ---------- Start ----------
