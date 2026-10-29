@@ -95,6 +95,7 @@ ol.schritte li{margin-bottom:6px}
 .segment button{flex:1;min-width:44px;appearance:none;border:0;border-radius:12px;padding:12px 8px;font:inherit;font-weight:650;background:var(--feld);color:var(--tinte);cursor:pointer}
 .segment.text button{font-size:14px;font-weight:600}
 .segment button.an{background:var(--tinte);color:#fff}
+.segment.mehrzeilig button{flex:1 1 30%}
 .segment button.an.warn{background:var(--rot);color:#fff}
 .skala{display:flex;justify-content:space-between;font-size:12px;color:var(--grau);margin-top:2px}
 input[type=range]{width:100%;accent-color:var(--tinte);height:28px}
@@ -123,6 +124,50 @@ textarea.text{width:100%;min-height:70px;font:inherit;padding:12px;border-radius
 .zs-punkte{font-weight:700}
 .zs-summe{display:flex;justify-content:space-between;border-top:2px solid var(--tinte);padding-top:8px;margin-top:2px;font-size:15px}
 .fuss button{appearance:none;border:0;background:none;color:var(--grau);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+/* Reiter */
+.reiter{display:inline-flex;background:var(--spur);border-radius:12px;padding:3px;gap:2px;margin:4px 0 6px}
+.reiter button{appearance:none;border:0;background:none;font:inherit;font-size:14px;font-weight:650;color:var(--grau);padding:7px 16px;border-radius:9px;cursor:pointer}
+.reiter button.an{background:var(--karte);color:var(--tinte);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+/* Kalender */
+.k-nav{display:flex;align-items:center;gap:10px;margin:10px 4px 16px}
+.k-nav .knopf{width:40px;height:40px;padding:0;font-size:20px}
+.k-woche{display:flex;flex-direction:column;gap:8px}
+.k-tag{background:var(--karte);border-radius:16px;padding:12px 14px}
+.k-tag.heute{box-shadow:inset 0 0 0 2px var(--tinte)}
+.k-tag.vorbei{opacity:.75}
+.k-kopf{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--grau);margin-bottom:6px}
+.k-tag.heute .k-kopf{color:var(--tinte)}
+.k-plus{appearance:none;border:0;background:var(--spur);color:var(--tinte);width:28px;height:28px;border-radius:8px;font-size:18px;line-height:1;cursor:pointer}
+.k-einheit{appearance:none;border:0;background:var(--feld);width:100%;display:flex;align-items:center;gap:10px;text-align:left;font:inherit;color:var(--tinte);padding:10px 12px;border-radius:12px;cursor:pointer;margin-top:6px}
+.k-einheit .punkt{margin-top:0}
+.k-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.k-titel{font-weight:650}
+.k-meta{font-size:12px;color:var(--grau)}
+.k-einheit.gestrichen .k-titel{text-decoration:line-through;color:var(--grau)}
+.k-einheit.fertig{background:var(--gruen-t)}
+.k-akt{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--grau);padding:8px 12px}
+.k-akt .punkt{margin-top:0}
+.k-leer{font-size:14px;padding:4px 0}
+/* Bottom-Sheet */
+#sheet{position:fixed;inset:0;z-index:20}
+.sheet-hg{position:absolute;inset:0;background:rgba(29,28,26,.35)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;background:var(--karte);border-radius:20px 20px 0 0;
+  padding:20px 20px calc(env(safe-area-inset-bottom) + 20px);max-width:560px;margin:0 auto;animation:hoch .18s ease-out}
+@keyframes hoch{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+.sheet h2{margin:2px 0 4px;font-size:22px}
+.sheet-kopf{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
+.sheet-zu{appearance:none;border:0;background:var(--spur);width:34px;height:34px;border-radius:17px;font-size:20px;cursor:pointer;flex:none}
+.sheet-aktionen{display:flex;flex-direction:column;gap:8px}
+.sheet-aktionen .knopf{text-align:left}
+.warn-text{color:var(--rot)!important}
+.sheet-fehler{color:var(--rot);font-size:14px;margin-top:8px}
+.tag-wahl{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.tag-wahl button{appearance:none;border:0;background:var(--feld);border-radius:10px;padding:10px 6px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--tinte)}
+.tag-wahl button.konflikt{background:var(--gelb-t)}
+.tag-wahl button span{margin-left:4px;color:#B7800C}
+.warnung{background:var(--gelb-t);border-radius:12px;padding:12px 14px;margin:14px 0 10px;font-size:14px}
+.warnung ul{margin:6px 0 0;padding-left:18px}
+
 /* Breite Bildschirme (Laptop, iPad quer): mehrspaltig. Am Handy bleibt alles einspaltig. */
 @media (min-width: 900px){
   body{padding-left:32px;padding-right:32px}
@@ -132,6 +177,13 @@ textarea.text{width:100%;min-height:70px;font:inherit;padding:12px;border-radius
   .gruppe{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;margin-bottom:12px}
   .gruppe>.karte{margin-bottom:0}
   .tag-name{width:96px}
+  .k-woche{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:stretch}
+  .k-tag{min-height:160px;padding:10px}
+  .k-einheit{padding:9px 10px;display:grid;grid-template-columns:8px minmax(0,1fr);gap:4px 8px;align-items:start}
+  .k-einheit .punkt{margin-top:7px}
+  .k-einheit .pille{grid-column:2;justify-self:start;font-size:10px;padding:3px 7px}
+  .k-titel{font-size:14px;line-height:1.3}
+  .sheet{bottom:auto;top:50%;transform:translateY(-50%);border-radius:20px;animation:none;max-width:520px}
 }
 </style>
 </head>
@@ -404,6 +456,7 @@ function zeigeHeute(){
   const d = new Date();
   const t = tagesAmpel();
   $("#app").innerHTML = `
+    ${reiter("heute")}
     <h1>${WOCHENTAGE[d.getDay()]}, ${d.getDate()}.${d.getMonth()+1}.</h1>
     <div class="raster">
       <div class="spalte">${t.checkin ? ampelKarte(t) + checkinKarte(t) : checkinKarte(t) + ampelKarte(t)}</div>
@@ -412,6 +465,7 @@ function zeigeHeute(){
     <div class="fuss"><button id="abmelden">Token auf diesem Gerät entfernen</button></div>`;
   document.querySelectorAll("[data-log]").forEach(k => k.onclick = () => zeigeKraftLog(k.dataset.log));
   $("#zum-checkin").onclick = zeigeCheckin;
+  bindeReiter();
   $("#abmelden").onclick = () => { if(confirm("Token auf diesem Gerät entfernen?")){ schreib(TOKEN_KEY, null); zeigeEinrichtung(); } };
 }
 
@@ -656,6 +710,306 @@ async function speichereKraft(){
 }
 
 window.addEventListener("beforeunload", e => { if(ungespeichert && offen){ e.preventDefault(); e.returnValue = ""; } });
+
+// ---------- Navigation ----------
+function reiter(aktiv){
+  return `<nav class="reiter">
+    <button data-reiter="heute" class="${aktiv==="heute"?"an":""}">Heute</button>
+    <button data-reiter="kalender" class="${aktiv==="kalender"?"an":""}">Kalender</button></nav>`;
+}
+function bindeReiter(){
+  document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => b.dataset.reiter==="kalender" ? zeigeKalender() : zeigeHeute());
+}
+
+// ---------- Regeln (aus einstellungen.json, wie im Konzept) ----------
+const SPORT_NAMEN = {laufen:"Laufen", rad:"Rad", schwimmen:"Schwimmen", kraft:"Kraft", mobilitaet:"Mobility", sonstiges:"Sonstiges"};
+function tageZwischen(a, b){ return Math.round((new Date(b+"T12:00:00") - new Date(a+"T12:00:00")) / 864e5); }
+function regeln(){ return (zustand.einstellungen.regeln) || {}; }
+const istTagA = e => e.art==="kraft_tag_a";
+const istSchwelle = e => e.art==="rad_schwelle";
+const istLauf = e => e.sport==="laufen";
+function istSchwer(e){
+  const schwer = regeln().schwere_einheiten || ["kraft_tag_a","rad_schwelle","langer_lauf"];
+  return schwer.includes(e.art) || (e.intensitaet==="hart" && ["laufen","rad","kraft"].includes(e.sport));
+}
+// Laufdistanz: geplant oder aus der Dauer bei lockerem Tempo (ca. 7:35 min/km) geschätzt
+function laufKm(e){ return e.distanz_km ?? (e.dauer_min ? e.dauer_min / 7.6 : 0); }
+function kurzTitel(e){ return e.titel || SPORT_NAMEN[e.sport] || "Einheit"; }
+
+// Verstöße zwischen zwei Einheiten; a liegt am selben Tag oder vor b
+function paarVerstoesse(a, b){
+  const t = tageZwischen(a.datum, b.datum), out = [];
+  const r = regeln(), schwelle = r.abstand_rad_schwelle_zu_lauf || {lauf_bis_km:5};
+  if(t===0){
+    if((istTagA(a) && istLauf(b)) || (istTagA(b) && istLauf(a)))
+      out.push(`Lauf und Tag A am selben Tag – zwischen Tag A und Lauf sollten mind. ${r.abstand_tag_a_zu_lauf_h || 10} h liegen.`);
+    if((istSchwelle(a) && istLauf(b)) || (istSchwelle(b) && istLauf(a)))
+      out.push("Lauf und Rad-Schwelle am selben Tag – mind. 10 h Abstand nötig.");
+    else if(istSchwer(a) && istSchwer(b) && !(istTagA(a)&&istLauf(b)) && !(istTagA(b)&&istLauf(a)))
+      out.push(`Zwei schwere Einheiten am selben Tag (${kurzTitel(a)} und ${kurzTitel(b)}).`);
+  }
+  if(t>0){
+    if(istSchwelle(a) && istLauf(b) && laufKm(b) > schwelle.lauf_bis_km && t < 2)
+      out.push(`Lauf über ${schwelle.lauf_bis_km} km direkt nach der Rad-Schwelle – dazwischen sollte ein Tag liegen.`);
+    if(istSchwer(a) && istSchwer(b) && t===1)
+      out.push(`Zwei schwere Beintage hintereinander (${kurzTitel(a)} und ${kurzTitel(b)}).`);
+  }
+  return out;
+}
+// Alle Verstöße, die eine Einheit an einem Zieldatum hätte
+function verstoesse(e, ziel){
+  const neu = {...e, datum: ziel};
+  const andere = zustand.plan.filter(x => x.id!==e.id && x.status!=="gestrichen" && Math.abs(tageZwischen(x.datum, ziel)) <= 2);
+  const out = [];
+  for(const o of andere){
+    const [a, b] = tageZwischen(o.datum, ziel) >= 0 ? [o, neu] : [neu, o];
+    out.push(...paarVerstoesse(a, b));
+  }
+  return [...new Set(out)];
+}
+function naechsterFreierTag(e, ab){
+  for(let k=1; k<=7; k++){
+    const d = plusTage(ab, k);
+    if(d >= HEUTE && !verstoesse(e, d).length) return d;
+  }
+  return null;
+}
+
+// ---------- Kalender ----------
+let wochenVersatz = 0;
+function montag(iso){ const d = new Date(iso+"T12:00:00"); d.setDate(d.getDate() - (d.getDay()+6)%7); return isoDatum(d); }
+function datumKurz(iso){ const d = new Date(iso+"T12:00:00"); return WOCHENTAGE[d.getDay()] + " " + iso.slice(8,10) + "." + iso.slice(5,7) + "."; }
+function erledigtDurch(e){
+  if(e.datum > HEUTE) return null;
+  return zustand.aktivitaeten.find(a => a.datum===e.datum && a.sport===e.sport) || null;
+}
+
+function zeigeKalender(){
+  $("#leiste").hidden = true;
+  const start = plusTage(montag(HEUTE), 7*wochenVersatz);
+  const tage = [...Array(7)].map((_, i) => plusTage(start, i));
+  const kw = (() => { const d = new Date(start+"T12:00:00"); d.setDate(d.getDate()+3); const j = new Date(d.getFullYear(),0,4);
+    return 1 + Math.round(((d - j) / 864e5 - 3 + (j.getDay()+6)%7) / 7); })();
+  let spalten = "";
+  for(const d of tage){
+    const geplant = zustand.plan.filter(e => e.datum===d);
+    const akt = zustand.aktivitaeten.filter(a => a.datum===d && a.sport!=="wechsel");
+    const zugeordnet = new Set(geplant.map(erledigtDurch).filter(Boolean));
+    const extra = akt.filter(a => !zugeordnet.has(a));
+    let inhalt = geplant.map(e => kalenderEinheit(e)).join("");
+    inhalt += extra.map(a => `<div class="k-akt"><span class="punkt" style="background:${SPORT_FARBEN[a.sport]||"#BDB7AD"}"></span>
+      <span>✓ ${esc(SPORT_NAMEN[a.sport]||a.sport)} ${Math.round(a.dauer_min||0)} min</span></div>`).join("");
+    if(!inhalt) inhalt = `<div class="leer k-leer">Ruhetag</div>`;
+    spalten += `<div class="k-tag ${d===HEUTE?"heute":""} ${d<HEUTE?"vorbei":""}">
+      <div class="k-kopf"><span>${datumKurz(d)}</span>${d>=HEUTE ? `<button class="k-plus" data-neu="${d}" aria-label="Einheit hinzufügen">+</button>` : ""}</div>
+      ${inhalt}</div>`;
+  }
+  $("#app").innerHTML = `${reiter("kalender")}
+    <div class="k-nav"><button class="knopf klein hell" id="k-zurueck" aria-label="Vorige Woche">‹</button>
+      <h1 style="margin:0">KW ${kw}</h1>
+      <button class="knopf klein hell" id="k-vor" aria-label="Nächste Woche">›</button>
+      ${wochenVersatz ? `<button class="link" id="k-heute">Diese Woche</button>` : ""}</div>
+    <div class="k-woche">${spalten}</div>
+    <p class="klein-grau" style="text-align:center">Tippe auf eine Einheit, um sie zu verschieben, zu kürzen, umzuwandeln oder zu streichen. ✓ = laut Garmin erledigt.</p>`;
+  bindeReiter();
+  $("#k-zurueck").onclick = () => { wochenVersatz--; zeigeKalender(); };
+  $("#k-vor").onclick = () => { wochenVersatz++; zeigeKalender(); };
+  if($("#k-heute")) $("#k-heute").onclick = () => { wochenVersatz = 0; zeigeKalender(); };
+  document.querySelectorAll("[data-einheit]").forEach(el => el.onclick = () => oeffneAktionen(el.dataset.einheit));
+  document.querySelectorAll("[data-neu]").forEach(el => el.onclick = () => oeffneNeu(el.dataset.neu));
+}
+
+function kalenderEinheit(e){
+  const fertig = erledigtDurch(e);
+  const gestrichen = e.status==="gestrichen";
+  const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "");
+  const marken = [];
+  if(e.verschoben_von) marken.push("verschoben");
+  if(e.verkuerzt) marken.push("verkürzt");
+  if(e.umgewandelt_von) marken.push("umgewandelt");
+  if(gestrichen) marken.push("gestrichen");
+  const pille = e.intensitaet && !gestrichen ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : "";
+  return `<button class="k-einheit ${gestrichen?"gestrichen":""} ${fertig?"fertig":""}" data-einheit="${esc(e.id)}">
+    <span class="punkt" style="background:${SPORT_FARBEN[e.sport]||"#BDB7AD"}"></span>
+    <span class="k-text"><span class="k-titel">${fertig ? "✓ " : ""}${esc(kurzTitel(e))}</span>
+      <span class="k-meta">${esc(umfang)}${marken.length ? (umfang ? " · " : "") + marken.join(" · ") : ""}</span></span>
+    ${pille}</button>`;
+}
+
+// ---------- Aktionen ----------
+function sheet(html){
+  schliesseSheet();
+  const el = document.createElement("div");
+  el.id = "sheet";
+  el.innerHTML = `<div class="sheet-hg"></div><div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.appendChild(el);
+  el.querySelector(".sheet-hg").onclick = schliesseSheet;
+  return el.querySelector(".sheet");
+}
+function schliesseSheet(){ const s = document.getElementById("sheet"); if(s) s.remove(); }
+
+async function aenderePlan(id, aenderung, nachricht){
+  const s = document.querySelector(".sheet");
+  if(s) s.querySelectorAll("button").forEach(b => b.disabled = true);
+  try{
+    zustand.plan = await aendere("daten/plan.json", [], plan => {
+      const neu = aenderung(plan);
+      return neu.sort((a,b) => a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0);
+    }, nachricht);
+    schliesseSheet(); zeigeKalender();
+  }catch(err){
+    if(s){ s.querySelectorAll("button").forEach(b => b.disabled = false);
+      const f = s.querySelector(".sheet-fehler"); if(f) f.textContent = err.message==="token" ? "Token ungültig." : err.message; }
+  }
+}
+function ersetzeEinheit(id, fn){ return plan => plan.map(x => x.id===id ? fn(structuredClone(x)) : x); }
+
+function oeffneAktionen(id){
+  const e = zustand.plan.find(x => x.id===id);
+  const gestrichen = e.status==="gestrichen";
+  const s = sheet(`<div class="sheet-kopf"><div><div class="augenbraue">${datumKurz(e.datum)}</div><h2>${esc(kurzTitel(e))}</h2>
+      ${e.details ? `<div class="klein-grau">${esc(e.details)}</div>` : ""}</div>
+      <button class="sheet-zu" aria-label="Schließen">×</button></div>
+    <div class="sheet-aktionen">
+      ${gestrichen ? `<button class="knopf voll" data-akt="wieder">Wiederherstellen</button>` : `
+      <button class="knopf hell voll" data-akt="verschieben">Verschieben</button>
+      <button class="knopf hell voll" data-akt="kuerzen">Verkürzen</button>
+      <button class="knopf hell voll" data-akt="umwandeln">Umwandeln</button>
+      <button class="knopf hell voll warn-text" data-akt="streichen">Streichen</button>`}
+    </div><div class="sheet-fehler"></div>`);
+  s.querySelector(".sheet-zu").onclick = schliesseSheet;
+  s.querySelectorAll("[data-akt]").forEach(b => b.onclick = () => ({
+    verschieben: () => zeigeVerschieben(e),
+    kuerzen: () => zeigeKuerzen(e),
+    umwandeln: () => zeigeUmwandeln(e),
+    streichen: () => aenderePlan(e.id, ersetzeEinheit(e.id, x => ({...x, status:"gestrichen"})), `Plan: ${kurzTitel(e)} am ${e.datum} gestrichen`),
+    wieder: () => aenderePlan(e.id, ersetzeEinheit(e.id, x => ({...x, status: x.verschoben_von ? "verschoben" : "geplant"})), `Plan: ${kurzTitel(e)} wiederhergestellt`)
+  }[b.dataset.akt])());
+}
+
+function verschiebe(e, ziel){
+  return aenderePlan(e.id, ersetzeEinheit(e.id, x => ({...x, verschoben_von: x.verschoben_von || x.datum, datum: ziel, status: "verschoben"})),
+    `Plan: ${kurzTitel(e)} von ${e.datum} auf ${ziel} verschoben`);
+}
+
+function zeigeVerschieben(e){
+  const ab = [HEUTE, montag(e.datum)].sort().pop();  // ab Wochenanfang der Einheit, aber nie in der Vergangenheit
+  const tage = [...Array(14)].map((_, i) => plusTage(ab, i)).filter(d => d!==e.datum);
+  const s = sheet(`<div class="sheet-kopf"><div><div class="augenbraue">Verschieben</div><h2>${esc(kurzTitel(e))}</h2>
+      <div class="klein-grau">bisher ${datumKurz(e.datum)}</div></div><button class="sheet-zu" aria-label="Schließen">×</button></div>
+    <div class="tag-wahl">${tage.map(d => {
+      const v = verstoesse(e, d).length;
+      return `<button data-ziel="${d}" class="${v ? "konflikt" : ""}">${datumKurz(d)}${v ? `<span>⚠︎</span>` : ""}</button>`; }).join("")}</div>
+    <div class="klein-grau" style="margin-top:10px">⚠︎ = verletzt eine Trainingsregel</div>
+    <div id="pruefung"></div><div class="sheet-fehler"></div>`);
+  s.querySelector(".sheet-zu").onclick = schliesseSheet;
+  s.querySelectorAll("[data-ziel]").forEach(b => b.onclick = () => {
+    const ziel = b.dataset.ziel, v = verstoesse(e, ziel);
+    if(!v.length) return verschiebe(e, ziel);
+    const vorschlag = naechsterFreierTag(e, ziel);
+    s.querySelector("#pruefung").innerHTML = `<div class="warnung"><b>${datumKurz(ziel)} passt nicht ganz:</b>
+      <ul>${v.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      <div class="sheet-aktionen">
+        ${vorschlag ? `<button class="knopf voll" id="vorschlag">${datumKurz(vorschlag)} nehmen (passt)</button>` : ""}
+        <button class="knopf hell voll" id="trotzdem">Trotzdem ${datumKurz(ziel)}</button></div>`;
+    if(vorschlag) s.querySelector("#vorschlag").onclick = () => verschiebe(e, vorschlag);
+    s.querySelector("#trotzdem").onclick = () => verschiebe(e, ziel);
+    s.querySelector("#pruefung").scrollIntoView({behavior:"smooth", block:"nearest"});
+  });
+}
+
+function zeigeKuerzen(e){
+  const mitDauer = !!e.dauer_min;
+  const gelb = e.varianten && e.varianten.gelb;
+  const s = sheet(`<div class="sheet-kopf"><div><div class="augenbraue">Verkürzen</div><h2>${esc(kurzTitel(e))}</h2></div>
+      <button class="sheet-zu" aria-label="Schließen">×</button></div>
+    ${mitDauer ? `<label class="feld" for="neue-dauer">Neue Dauer (min)</label>
+      <input class="text" id="neue-dauer" inputmode="numeric" value="${Math.max(10, Math.round(e.dauer_min*0.75/5)*5)}">` : ""}
+    ${gelb ? `<div class="variante" style="margin:14px 0 0;background:var(--gelb-t)"><b>Kurzversion:</b> ${esc(gelb)}</div>` : ""}
+    <div class="sheet-aktionen" style="margin-top:14px"><button class="knopf voll" id="kuerzen-ok">Verkürzen</button></div>
+    <div class="sheet-fehler"></div>`);
+  s.querySelector(".sheet-zu").onclick = schliesseSheet;
+  s.querySelector("#kuerzen-ok").onclick = () => {
+    const dauer = mitDauer ? Number(s.querySelector("#neue-dauer").value) : null;
+    aenderePlan(e.id, ersetzeEinheit(e.id, x => {
+      x.verkuerzt = true;
+      if(mitDauer && dauer > 0){ x.dauer_min_original = x.dauer_min_original || x.dauer_min; x.dauer_min = dauer; }
+      if(gelb){ x.details_original = x.details_original || x.details; x.details = gelb; }
+      return x;
+    }), `Plan: ${kurzTitel(e)} am ${e.datum} verkürzt`);
+  };
+}
+
+function zeigeUmwandeln(e){
+  const ziele = ["rad","schwimmen","laufen","mobilitaet"].filter(sp => sp!==e.sport);
+  const s = sheet(`<div class="sheet-kopf"><div><div class="augenbraue">Umwandeln</div><h2>${esc(kurzTitel(e))}</h2>
+      <div class="klein-grau">wird zu einer lockeren Einheit</div></div><button class="sheet-zu" aria-label="Schließen">×</button></div>
+    <div class="sheet-aktionen">${ziele.map(sp => `<button class="knopf hell voll" data-sport="${sp}">
+      <span class="punkt" style="background:${SPORT_FARBEN[sp]};display:inline-block;margin:0 8px 1px 0"></span>${SPORT_NAMEN[sp]} locker</button>`).join("")}
+      ${e.intensitaet && e.intensitaet!=="locker" ? `<button class="knopf hell voll" data-sport="${e.sport}">${SPORT_NAMEN[e.sport]} locker statt ${esc(e.intensitaet)}</button>` : ""}</div>
+    <div class="sheet-fehler"></div>`);
+  s.querySelector(".sheet-zu").onclick = schliesseSheet;
+  s.querySelectorAll("[data-sport]").forEach(b => b.onclick = () => {
+    const sp = b.dataset.sport;
+    aenderePlan(e.id, ersetzeEinheit(e.id, x => {
+      x.umgewandelt_von = x.umgewandelt_von || {sport:x.sport, titel:x.titel, art:x.art, intensitaet:x.intensitaet};
+      const alt = x.umgewandelt_von.titel || SPORT_NAMEN[x.umgewandelt_von.sport];
+      x.titel = sp===x.umgewandelt_von.sport ? `${SPORT_NAMEN[sp]} locker` : `${SPORT_NAMEN[sp]} locker (statt ${alt})`;
+      x.sport = sp; x.intensitaet = "locker";
+      delete x.art; delete x.varianten; delete x.umfang;
+      x.details = "Zone 1–2, entspannt";
+      return x;
+    }), `Plan: ${kurzTitel(e)} am ${e.datum} umgewandelt`);
+  });
+}
+
+function oeffneNeu(datum){
+  const neu = {sport:"rad", art:null, intensitaet:"locker"};
+  const s = sheet(`<div class="sheet-kopf"><div><div class="augenbraue">${datumKurz(datum)}</div><h2>Einheit hinzufügen</h2></div>
+      <button class="sheet-zu" aria-label="Schließen">×</button></div>
+    <label class="feld">Sportart</label>
+    <div class="segment text mehrzeilig" id="n-sport">${Object.entries(SPORT_NAMEN).filter(([k]) => k!=="sonstiges")
+      .map(([k,l]) => `<button type="button" data-wert="${k}">${l}</button>`).join("")}</div>
+    <div id="n-art-feld" hidden><label class="feld">Krafteinheit</label>
+      <div class="segment text" id="n-art"><button type="button" data-wert="kraft_tag_a">Tag A</button><button type="button" data-wert="kraft_tag_b">Tag B</button><button type="button" data-wert="">Sonstiges</button></div></div>
+    <label class="feld" for="n-titel">Titel</label><input class="text" id="n-titel" placeholder="z. B. Rad Z2">
+    <label class="feld" for="n-dauer">Dauer (min)</label><input class="text" id="n-dauer" inputmode="numeric" placeholder="optional">
+    <label class="feld">Intensität</label>
+    <div class="segment text" id="n-int"><button type="button" data-wert="locker">locker</button><button type="button" data-wert="mittel">mittel</button><button type="button" data-wert="hart">hart</button></div>
+    <div id="n-pruefung"></div>
+    <div class="sheet-aktionen" style="margin-top:14px"><button class="knopf voll" id="n-ok">Hinzufügen</button></div>
+    <div class="sheet-fehler"></div>`);
+  s.querySelector(".sheet-zu").onclick = schliesseSheet;
+  const standardTitel = () => neu.art==="kraft_tag_a" ? "Gym – Tag A" : neu.art==="kraft_tag_b" ? "Gym – Tag B" : SPORT_NAMEN[neu.sport];
+  const entwurf = () => ({id:"", datum, sport:neu.sport, art:neu.art||undefined, intensitaet:neu.intensitaet,
+    dauer_min: Number(s.querySelector("#n-dauer").value) || undefined, titel: s.querySelector("#n-titel").value.trim() || standardTitel()});
+  const zeichne = () => {
+    s.querySelectorAll("#n-sport button").forEach(b => b.classList.toggle("an", b.dataset.wert===neu.sport));
+    s.querySelectorAll("#n-art button").forEach(b => b.classList.toggle("an", b.dataset.wert===(neu.art||"")));
+    s.querySelectorAll("#n-int button").forEach(b => b.classList.toggle("an", b.dataset.wert===neu.intensitaet));
+    s.querySelector("#n-art-feld").hidden = neu.sport!=="kraft";
+    const v = verstoesse(entwurf(), datum);
+    s.querySelector("#n-pruefung").innerHTML = v.length ? `<div class="warnung" style="margin-top:14px"><ul>${v.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
+  };
+  s.querySelectorAll("#n-sport button").forEach(b => b.onclick = () => { neu.sport = b.dataset.wert; if(neu.sport!=="kraft") neu.art = null; zeichne(); });
+  s.querySelectorAll("#n-art button").forEach(b => b.onclick = () => {
+    neu.art = b.dataset.wert || null;
+    if(neu.art==="kraft_tag_a") neu.intensitaet = "hart";
+    if(neu.art==="kraft_tag_b") neu.intensitaet = "mittel";
+    zeichne(); });
+  s.querySelectorAll("#n-int button").forEach(b => b.onclick = () => { neu.intensitaet = b.dataset.wert; zeichne(); });
+  s.querySelector("#n-dauer").oninput = zeichne;
+  zeichne();
+  s.querySelector("#n-ok").onclick = () => {
+    const x = entwurf();
+    const vorlage = x.art ? zustand.plan.filter(p => p.art===x.art && p.varianten).slice(-1)[0] : null;
+    x.id = `${datum}-${x.sport}-${Date.now().toString(36)}`;
+    x.status = "geplant";
+    if(vorlage){ x.varianten = structuredClone(vorlage.varianten); if(vorlage.details) x.details = vorlage.details; if(!x.dauer_min && vorlage.umfang) x.umfang = vorlage.umfang; }
+    Object.keys(x).forEach(k => x[k]===undefined && delete x[k]);
+    aenderePlan(x.id, plan => plan.concat(x), `Plan: ${x.titel} am ${datum} hinzugefügt`);
+  };
+}
 
 // ---------- Start ----------
 async function start(){
