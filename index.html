@@ -163,6 +163,12 @@ button.k-akt{appearance:none;border:0;background:none;font:inherit;width:100%;te
 .d-abschnitt>.augenbraue{display:block;margin-bottom:8px}
 .d-variante{border-left:4px solid;border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--feld);font-size:15px;line-height:1.45}
 .d-variante b{display:block;font-size:13px;margin-bottom:2px}
+.d-variante.gross{font-size:17px;line-height:1.5;padding:14px 16px}
+.d-mehr{margin-top:16px}
+.d-mehr summary{cursor:pointer;color:var(--blau);font-weight:600;font-size:14px;list-style:none;margin-bottom:10px}
+.d-mehr summary::-webkit-details-marker{display:none}
+.d-mehr summary::after{content:" ▸"}
+.d-mehr[open] summary::after{content:" ▾"}
 .d-werte{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .d-werte div{background:var(--feld);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column}
 .d-werte span{font-size:12px;color:var(--grau)}
@@ -926,12 +932,24 @@ function detailKarte(){
   const gestrichen = e.status==="gestrichen";
   const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "");
   const pille = e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : "";
-  // Ampel-Varianten: heute die passende hervorheben
-  const heuteFarbe = e.datum===HEUTE ? tagesAmpel().farbe : null;
+  // Nur das zeigen, was wirklich gemacht werden soll; Alternativen zugeklappt
   const v = e.varianten || {};
-  const varianten = Object.keys(v).length ? `<div class="d-abschnitt"><div class="augenbraue">Je nach Ampel</div>${
-    ["gruen","gelb","rot"].filter(f => v[f]).map(f => `<div class="d-variante ${heuteFarbe===f ? "aktiv" : ""}" style="border-color:${AMPEL[f].farbe};${heuteFarbe===f ? `background:${AMPEL[f].tint}` : ""}">
-      <b style="color:${f==="gelb" ? "#B7800C" : AMPEL[f].farbe}">${AMPEL[f].wort}${heuteFarbe===f ? " · heute" : ""}</b><div>${esc(v[f])}</div></div>`).join("")}</div>` : "";
+  const heute = e.datum===HEUTE && !gestrichen ? heuteFuer(e, tagesAmpel()) : null;
+  const zukunft = e.datum > HEUTE && !gestrichen;
+  let hauptteil, alternativen = [];
+  if(heute){
+    hauptteil = `<div class="d-abschnitt"><div class="augenbraue">Heute zu tun</div>
+      <div class="d-variante gross" style="border-color:${AMPEL[heute.farbe].farbe};background:${AMPEL[heute.farbe].tint}">
+      <b style="color:${heute.farbe==="gelb" ? "#B7800C" : AMPEL[heute.farbe].farbe}">${esc(heute.label.replace(/:$/, ""))}</b><div>${esc(heute.text)}</div></div></div>`;
+    if(e.details) alternativen.push(["Normalfall", e.details, null]);
+  } else {
+    hauptteil = e.details ? `<p class="d-text">${esc(e.details)}</p>` : "";
+    if(zukunft && Object.keys(v).length) hauptteil += `<p class="klein-grau" style="margin:8px 0 0">Ob die volle oder eine leichtere Variante dran ist, entscheidet am Tag selbst deine Ampel.</p>`;
+  }
+  for(const f of ["gruen","gelb","rot"]) if(v[f] && !(heute && heute.text===v[f])) alternativen.push([AMPEL[f].wort, v[f], f]);
+  const varianten = alternativen.length ? `<details class="d-mehr"><summary>${heute ? "Andere Varianten anzeigen" : "Varianten je nach Ampel anzeigen"}</summary>${
+    alternativen.map(([titel, text, f]) => `<div class="d-variante" style="border-color:${f ? AMPEL[f].farbe : "#BDB7AD"}">
+      <b style="color:${f==="gelb" ? "#B7800C" : f ? AMPEL[f].farbe : "var(--grau)"}">${esc(titel)}</b><div>${esc(text)}</div></div>`).join("")}</details>` : "";
   const verlauf = [];
   if(e.verschoben_von) verlauf.push(`Verschoben von ${datumKurz(e.verschoben_von)}`);
   if(e.verkuerzt) verlauf.push(e.dauer_min_original ? `Verkürzt von ${e.dauer_min_original} auf ${e.dauer_min} min` : "Verkürzt");
@@ -944,7 +962,7 @@ function detailKarte(){
     <div class="d-kopf"><div><div class="augenbraue">${datumKurz(e.datum)}${fertig ? " · ✓ erledigt" : ""}</div>
       <h2 class="${gestrichen ? "durch" : ""}"><span class="punkt gross" style="background:${SPORT_FARBEN[e.sport]||"#BDB7AD"}"></span>${esc(kurzTitel(e))}</h2>
       <div class="d-meta">${esc(SPORT_NAMEN[e.sport]||"")}${umfang ? " · " + esc(umfang) : ""} ${pille}</div></div></div>
-    ${e.details ? `<p class="d-text">${esc(e.details)}</p>` : ""}
+    ${hauptteil}
     ${regel.length ? `<div class="warnung"><b>Regelhinweis:</b><ul>${regel.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
     ${verlauf.length ? `<div class="d-verlauf">${verlauf.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
     ${(() => { const spalten = [varianten, (fertig ? aktivitaetHtml(fertig) : "") + kraftHtml(e)].filter(Boolean);
