@@ -186,6 +186,14 @@ ul.punkte li{margin:3px 0}
 .d-aktionen{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .d-aktionen .knopf{flex:1 1 40%}
 
+/* Ruhetag */
+.k-ruhe{appearance:none;border:0;background:none;font:inherit;color:var(--grau);width:100%;text-align:left;padding:8px 12px;border-radius:12px;cursor:pointer;margin-top:2px}
+.k-ruhe:hover{background:var(--feld)}
+.k-ruhe.gewaehlt{box-shadow:inset 0 0 0 2px var(--tinte);color:var(--tinte)}
+.ruhe .ruhe-bild{display:flex;justify-content:center;margin:8px 0 4px}
+.ruhe-heute{display:flex;gap:12px;align-items:center}
+.ruhe-heute svg{flex:none;width:110px}
+
 /* Bottom-Sheet */
 #sheet{position:fixed;inset:0;z-index:20}
 .sheet-hg{position:absolute;inset:0;background:rgba(29,28,26,.35)}
@@ -481,7 +489,8 @@ function einheitHtml(e, istHeute){
   const farbe = SPORT_FARBEN[e.sport] || "#BDB7AD";
   const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "");
   const pille = e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : "";
-  let unten = e.details ? `<div class="einheit-details">${inhalt(e.details)}</div>` : "";
+  // Heute die volle Liste; kommende Tage ohne Details (die stehen im Kalender)
+  let unten = e.details && istHeute ? `<div class="einheit-details">${inhalt(e.details)}</div>` : "";
   const h = istHeute ? heuteFuer(e, tagesAmpel()) : null;
   if(h) unten = varianteHtml(h);
   const kraftArt = e.art && zustand.uebungen[e.art] ? e.art : null;
@@ -503,7 +512,9 @@ function zeigeHeute(){
     const d = plusTage(HEUTE, i);
     const liste = aktiv.filter(e => e.datum===d);
     tage += `<div class="tag ${i===0?"heute":""}"><div class="tag-name">${tagLabel(d,i)}</div><div class="tag-inhalt">${
-      liste.length ? liste.map(e => einheitHtml(e, i===0)).join("") : `<span class="leer">Ruhetag</span>`}</div></div>`;
+      liste.length ? liste.map(e => einheitHtml(e, i===0)).join("")
+        : i===0 ? `<div class="ruhe-heute">${ruheBild(150)}<div><b>Ruhetag</b><div class="klein-grau">${esc(ruheSatz(d))}</div></div></div>`
+        : `<span class="leer">Ruhetag</span>`}</div></div>`;
   }
   const d = new Date();
   const t = tagesAmpel();
@@ -851,6 +862,7 @@ function zeigeKalender(){
   // Ohne gültige Auswahl: nächste anstehende Einheit der Woche (sonst die erste)
   const inWoche = zustand.plan.filter(e => tage.includes(e.datum));
   const gueltig = auswahl && (auswahl.typ==="plan" ? inWoche.some(e => e.id===auswahl.id)
+    : auswahl.typ==="ruhe" ? tage.includes(auswahl.id)
     : zustand.aktivitaeten.some(a => String(a.id)===String(auswahl.id) && tage.includes(a.datum)));
   if(!gueltig){
     const naechste = inWoche.filter(e => e.datum>=HEUTE && e.status!=="gestrichen")[0] || inWoche[0];
@@ -865,7 +877,7 @@ function zeigeKalender(){
     let inhalt = geplant.map(e => kalenderEinheit(e)).join("");
     inhalt += extra.map(a => `<button class="k-akt ${auswahl && auswahl.typ==="akt" && String(auswahl.id)===String(a.id) ? "gewaehlt" : ""}" data-akt-id="${esc(a.id)}"><span class="punkt" style="background:${SPORT_FARBEN[a.sport]||"#BDB7AD"}"></span>
       <span class="k-text"><span class="k-titel">${esc(SPORT_NAMEN[a.sport]||a.sport)}</span><span class="k-meta">✓ ${Math.round(a.dauer_min||0)} min</span></span></button>`).join("");
-    if(!inhalt) inhalt = `<div class="leer k-leer">Ruhetag</div>`;
+    if(!inhalt) inhalt = `<button class="k-ruhe ${auswahl && auswahl.typ==="ruhe" && auswahl.id===d ? "gewaehlt" : ""}" data-ruhe="${d}">Ruhetag</button>`;
     spalten += `<div class="k-tag ${d===HEUTE?"heute":""} ${d<HEUTE?"vorbei":""}">
       <div class="k-kopf"><span>${datumKurz(d)}</span><button class="k-plus" data-neu="${d}" aria-label="Einheit hinzufügen">+</button></div>
       ${inhalt}</div>`;
@@ -888,8 +900,61 @@ function zeigeKalender(){
   };
   document.querySelectorAll("[data-einheit]").forEach(el => el.onclick = () => waehle({typ:"plan", id:el.dataset.einheit}));
   document.querySelectorAll("[data-akt-id]").forEach(el => el.onclick = () => waehle({typ:"akt", id:el.dataset.aktId}));
+  document.querySelectorAll("[data-ruhe]").forEach(el => el.onclick = () => waehle({typ:"ruhe", id:el.dataset.ruhe}));
   document.querySelectorAll("[data-neu]").forEach(el => el.onclick = () => oeffneNeu(el.dataset.neu));
   bindeDetail();
+}
+
+
+// ---------- Ruhetag ----------
+// Eigene kleine Zeichnung: Figur in der Hängematte zwischen zwei Palmen
+function ruheBild(breite){
+  return `<svg viewBox="0 0 260 150" width="${breite}" role="img" aria-label="Figur entspannt in einer Hängematte" style="display:block;max-width:100%;height:auto">
+  <circle cx="214" cy="34" r="18" fill="#F6C453"/>
+  <g stroke="#F6C453" stroke-width="3" stroke-linecap="round">
+    <line x1="214" y1="6" x2="214" y2="0"/><line x1="242" y1="34" x2="250" y2="34"/><line x1="234" y1="14" x2="240" y2="8"/><line x1="234" y1="54" x2="240" y2="60"/></g>
+  <path d="M10 140 Q130 128 250 140 L250 150 L10 150 Z" fill="#EAD9B8"/>
+  <path d="M40 140 C42 110 44 80 52 52" stroke="#8A6A4A" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M200 140 C198 112 196 84 188 58" stroke="#8A6A4A" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <g fill="#3FA36B">
+    <path d="M52 52 C34 40 18 44 8 56 C26 50 38 52 52 56 Z"/><path d="M52 52 C44 32 50 20 62 12 C58 28 58 40 56 54 Z"/>
+    <path d="M52 52 C70 40 86 42 96 54 C80 50 66 52 54 56 Z"/><path d="M52 52 C38 30 24 26 12 30 C30 36 40 44 50 56 Z"/></g>
+  <g fill="#2F8F5E">
+    <path d="M188 58 C170 46 154 48 144 60 C162 54 174 56 188 62 Z"/><path d="M188 58 C182 38 188 26 200 18 C196 34 194 46 192 60 Z"/>
+    <path d="M188 58 C206 46 222 48 232 60 C216 56 202 58 190 62 Z"/></g>
+  <path d="M54 76 Q120 128 186 80" stroke="#E0473B" stroke-width="3" fill="none"/>
+  <path d="M54 76 Q120 116 186 80 Q120 124 54 76 Z" fill="#F08A6E" opacity=".9"/>
+  <g stroke="#C93A2F" stroke-width="1.5" opacity=".6"><line x1="80" y1="92" x2="82" y2="99"/><line x1="105" y1="99" x2="106" y2="106"/><line x1="135" y1="100" x2="134" y2="107"/><line x1="160" y1="93" x2="158" y2="100"/></g>
+  <ellipse cx="122" cy="94" rx="40" ry="11" fill="#5B8DEF"/>
+  <circle cx="82" cy="86" r="13" fill="#F3C9A8"/>
+  <path d="M71 80 Q82 68 94 80" fill="#5A3E2B"/>
+  <path d="M76 87 q3 2 6 0" stroke="#3D2B1F" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M85 87 q3 2 6 0" stroke="#3D2B1F" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M80 92 q3 2 6 0" stroke="#C26A5A" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <circle cx="160" cy="88" r="6" fill="#F3C9A8"/>
+  <g fill="#7A766F" font-family="var(--schrift)" font-weight="700">
+    <text x="98" y="62" font-size="12">z</text><text x="108" y="50" font-size="16">z</text><text x="121" y="35" font-size="21">Z</text></g>
+  </svg>`;
+}
+const RUHE_SAETZE = [
+  "Füße hoch – dein Körper baut jetzt auf, was du trainiert hast.",
+  "Erholung ist Teil des Trainings, nicht die Pause davon.",
+  "Stärker wirst du in der Erholung, nicht im Training selbst.",
+  "Akku laden ist angesagt – am nächsten Trainingstag hast du mehr davon."
+];
+function ruheSatz(datum){ const n = Number(datum.replaceAll("-","")); return RUHE_SAETZE[n % RUHE_SAETZE.length]; }
+const RUHE_IDEEN = ["Spaziergang an der frischen Luft", "Knee-to-Wall und Mobility aus der Physio-App", "Spagat-Dehnroutine (ca. 10 min)", "Genug essen und trinken", "Früh ins Bett"];
+function ruheKarte(datum){
+  const vorbei = datum < HEUTE;
+  return `<div class="karte detail ruhe">
+    <div class="augenbraue">${datumKurz(datum)}${datum===HEUTE ? " · heute" : ""}</div>
+    <h2>Ruhetag</h2>
+    <div class="ruhe-bild">${ruheBild(320)}</div>
+    <p class="d-text">${esc(vorbei ? "Hier war Ruhetag – auch der zählt zum Training." : ruheSatz(datum))}</p>
+    ${vorbei ? "" : `<div class="d-abschnitt"><div class="augenbraue">Wenn dir danach ist – alles optional</div>
+      <ul class="punkte">${RUHE_IDEEN.map(i => `<li>${esc(i)}</li>`).join("")}</ul></div>`}
+    <div class="d-aktionen"><button class="knopf hell" data-neu="${datum}">Doch eine Einheit planen</button></div>
+  </div>`;
 }
 
 // ---------- Detailansicht unter dem Kalender ----------
@@ -930,6 +995,7 @@ function kraftHtml(e){
 }
 function detailKarte(){
   if(!auswahl) return `<div class="karte leer">Keine Einheiten in dieser Woche. Mit + fügst du eine hinzu.</div>`;
+  if(auswahl.typ==="ruhe") return ruheKarte(auswahl.id);
   if(auswahl.typ==="akt"){
     const a = zustand.aktivitaeten.find(x => String(x.id)===String(auswahl.id));
     if(!a) return "";
