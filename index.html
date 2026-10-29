@@ -123,6 +123,16 @@ textarea.text{width:100%;min-height:70px;font:inherit;padding:12px;border-radius
 .zs-punkte{font-weight:700}
 .zs-summe{display:flex;justify-content:space-between;border-top:2px solid var(--tinte);padding-top:8px;margin-top:2px;font-size:15px}
 .fuss button{appearance:none;border:0;background:none;color:var(--grau);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+/* Breite Bildschirme (Laptop, iPad quer): mehrspaltig. Am Handy bleibt alles einspaltig. */
+@media (min-width: 900px){
+  body{padding-left:32px;padding-right:32px}
+  main,.leiste .innen{max-width:1100px}
+  h1{font-size:34px;margin-bottom:20px}
+  .raster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+  .gruppe{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;margin-bottom:12px}
+  .gruppe>.karte{margin-bottom:0}
+  .tag-name{width:96px}
+}
 </style>
 </head>
 <body>
@@ -395,8 +405,10 @@ function zeigeHeute(){
   const t = tagesAmpel();
   $("#app").innerHTML = `
     <h1>${WOCHENTAGE[d.getDay()]}, ${d.getDate()}.${d.getMonth()+1}.</h1>
-    ${t.checkin ? ampelKarte(t) + checkinKarte(t) : checkinKarte(t) + ampelKarte(t)}
-    <div class="karte"><span class="augenbraue">Heute & die nächsten Tage</span>${tage}</div>
+    <div class="raster">
+      <div class="spalte">${t.checkin ? ampelKarte(t) + checkinKarte(t) : checkinKarte(t) + ampelKarte(t)}</div>
+      <div class="spalte"><div class="karte"><span class="augenbraue">Heute & die nächsten Tage</span>${tage}</div></div>
+    </div>
     <div class="fuss"><button id="abmelden">Token auf diesem Gerät entfernen</button></div>`;
   document.querySelectorAll("[data-log]").forEach(k => k.onclick = () => zeigeKraftLog(k.dataset.log));
   $("#zum-checkin").onclick = zeigeCheckin;
@@ -416,7 +428,7 @@ function zeigeCheckin(){
     <div class="skala"><span>0 kein Schmerz</span><span>3 Grenze</span><span>10</span></div></div>`;
   $("#app").innerHTML = `<button class="zurueck" id="zurueck">‹ Übersicht</button>
     <h1 style="margin-top:4px">Morgen-Check-in</h1>
-    <div class="karte">
+    <div class="gruppe"><div class="karte">
       <div class="frage"><div class="frage-titel">Energie</div>${seg("energie", {1:"1",2:"2",3:"3",4:"4",5:"5"})}
         <div class="skala"><span>leer</span><span>top</span></div></div>
       ${regler("knie", "Knie außen")}
@@ -427,6 +439,7 @@ function zeigeCheckin(){
       <div class="frage"><div class="frage-titel">Heute</div><div class="segment text" data-mehr="schnell">${
         Object.entries(SCHNELL).map(([w,l]) => `<button type="button" data-wert="${w}">${esc(l)}</button>`).join("")}</div></div>
       ${lauf ? `<div class="frage"><div class="frage-titel">War das Knie heute Morgen ruhig?</div>${seg("knie_ruhig", {true:"Ja", false:"Nein"})}</div>` : ""}
+    </div>
     </div>
     <div class="karte"><div class="frage"><div class="frage-titel">Notiz</div>
       <textarea class="text" id="notiz" placeholder="Optional – z. B. schlecht geschlafen, Stress, Halskratzen">${esc(ci.notiz||"")}</textarea></div></div>`;
@@ -520,9 +533,13 @@ function zeigeKraftLog(planId){
     <h1 style="margin-top:4px">${esc(def.name)}</h1>${variante}`;
   let station = null;
   for(const u of def.uebungen){
-    if(u.station!==station){ station = u.station; html += `<div class="augenbraue station">${esc(station)}</div>`; }
+    if(u.station!==station){
+      if(station!==null) html += `</div>`;
+      station = u.station; html += `<div class="augenbraue station">${esc(station)}</div><div class="gruppe">`;
+    }
     html += `<div class="karte" data-uebung="${esc(u.id)}">${uebungHtml(u)}</div>`;
   }
+  if(station!==null) html += `</div>`;
   $("#app").innerHTML = html;
   $("#zurueck").onclick = zeigeHeute;
   bindeKraft();
