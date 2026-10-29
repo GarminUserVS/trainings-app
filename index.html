@@ -86,6 +86,25 @@ input.text{width:100%;font:inherit;padding:12px;border-radius:12px;border:1px so
 ol.schritte{padding-left:20px;margin:8px 0 0}
 ol.schritte li{margin-bottom:6px}
 .fuss{text-align:center;margin-top:20px}
+/* Check-in */
+.frage{margin-top:18px}
+.frage:first-of-type{margin-top:4px}
+.frage-titel{font-weight:650;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline}
+.frage-titel .wert{font-size:20px;font-weight:700}
+.segment{display:flex;gap:6px;flex-wrap:wrap}
+.segment button{flex:1;min-width:44px;appearance:none;border:0;border-radius:12px;padding:12px 8px;font:inherit;font-weight:650;background:var(--feld);color:var(--tinte);cursor:pointer}
+.segment.text button{font-size:14px;font-weight:600}
+.segment button.an{background:var(--tinte);color:#fff}
+.segment button.an.warn{background:var(--rot);color:#fff}
+.skala{display:flex;justify-content:space-between;font-size:12px;color:var(--grau);margin-top:2px}
+input[type=range]{width:100%;accent-color:var(--tinte);height:28px}
+textarea.text{width:100%;min-height:70px;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--linie);background:var(--feld);resize:vertical}
+.checkin-start{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.checkin-zeile{font-size:14px;color:var(--grau);display:flex;justify-content:space-between;gap:8px;align-items:center}
+.link{appearance:none;border:0;background:none;color:var(--blau);font:inherit;font-weight:600;cursor:pointer;padding:0}
+.anpassung{margin-top:12px;font-size:14px;line-height:1.45}
+.anpassung li{margin-bottom:4px}
+.werte-zeile{font-size:13px;color:var(--grau);margin-top:6px}
 .fuss button{appearance:none;border:0;background:none;color:var(--grau);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
 </style>
 </head>
@@ -162,7 +181,7 @@ async function aendere(pfad, standard, aenderung, nachricht){
 }
 
 // ---------- Zustand ----------
-const zustand = {plan:[], bericht:null, uebungen:{}, kraft:[]};
+const zustand = {plan:[], bericht:null, uebungen:{}, kraft:[], checkins:[], aktivitaeten:[]};
 
 async function pruefeZugriff(){
   const res = await fetch("https://api.github.com/repos/" + REPO, {cache:"no-store",
@@ -176,13 +195,16 @@ async function pruefeZugriff(){
 
 async function ladeAlles(){
   await pruefeZugriff();
-  const [plan, bericht, uebungen, kraft] = await Promise.all([
+  const [plan, bericht, uebungen, kraft, checkins, aktivitaeten] = await Promise.all([
     ladeJson("daten/plan.json", []),
     ladeJson("daten/berichte/" + HEUTE + ".json", null),
     ladeJson("daten/uebungen.json", {}),
-    ladeJson("daten/kraft.json", [])
+    ladeJson("daten/kraft.json", []),
+    ladeJson("daten/checkins.json", []),
+    ladeJson("daten/aktivitaeten.json", [])
   ]);
   zustand.plan = plan.daten; zustand.bericht = bericht.daten; zustand.uebungen = uebungen.daten; zustand.kraft = kraft.daten;
+  zustand.checkins = checkins.daten; zustand.aktivitaeten = aktivitaeten.daten;
 }
 
 // ---------- Ansichten ----------
@@ -207,16 +229,87 @@ function zeigeEinrichtung(fehler){
   };
 }
 
-function ampelKarte(){
-  const b = zustand.bericht;
-  if(!b) return `<div class="karte"><span class="augenbraue">Bereitschaft</span><div class="leer">Der Morgenbericht für heute ist noch nicht da – er kommt, sobald deine Uhr den Schlaf synchronisiert hat.</div></div>`;
-  const a = AMPEL[b.farbe];
+// ---------- Tages-Ampel: Garmin-Werte + Check-in (das Gefühl hat Vorrang) ----------
+const RANG = {rot:0, gelb:1, gruen:2};
+const INFEKT = {nein:"Nein", ober:"Nur oberhalb des Halses", unter:"Unterhalb des Halses oder Fieber"};
+const SCHNELL = {muede:"Müde", muskelkater:"Muskelkater", wenig_zeit:"Wenig Zeit"};
+function checkinHeute(){ return zustand.checkins.find(c => c.datum===HEUTE) || null; }
+function liefGestern(){
+  const gestern = plusTage(HEUTE, -1);
+  return zustand.aktivitaeten.some(a => a.datum===gestern && a.sport==="laufen")
+      || zustand.plan.some(e => e.datum===gestern && e.sport==="laufen" && e.status==="erledigt");
+}
+function tagesAmpel(){
+  const b = zustand.bericht, c = checkinHeute();
+  const t = {garmin: b ? b.farbe : null, score: b ? b.score : null, farbe: b ? b.farbe : null, gruende: [], hinweise: [],
+             laufsperre: false, wenigZeit: false, checkin: c};
+  if(!c) return t;
+  const deckel = (farbe, grund) => {
+    t.gruende.push(grund);
+    if(t.farbe===null || RANG[farbe] < RANG[t.farbe]) t.farbe = farbe;
+  };
+  if(c.infekt==="unter") deckel("rot", "Infektgefühl unterhalb des Halses bzw. Fieber");
+  if(c.infekt==="ober"){ deckel("gelb", "Infektgefühl oberhalb des Halses"); t.hinweise.push("Nur Zone 1–2, keine Intervalle."); }
+  if(c.energie!==null && c.energie<=2) deckel("gelb", "Energie niedrig (" + c.energie + "/5)");
+  if((c.knie ?? 0) > 3 || (c.huefte ?? 0) > 3){
+    t.laufsperre = true;
+    t.hinweise.push("Knie oder Hüfte über 3/10: kein Lauf heute – locker Rad oder Schwimmen als Ersatz.");
+  }
+  if(c.knie_ruhig===false) t.hinweise.push("Knie war nach dem letzten Lauf nicht ruhig: Laufdauer nicht steigern.");
+  if((c.schnell||[]).includes("wenig_zeit")){ t.wenigZeit = true; }
+  if((c.schnell||[]).includes("muede") && t.farbe==="gruen") t.hinweise.push("Müde trotz guter Werte: Intensität lieber etwas rausnehmen.");
+  return t;
+}
+
+function checkinKarte(t){
+  const c = t.checkin;
+  if(!c) return `<div class="karte checkin-start"><div><span class="augenbraue">Morgen-Check-in</span>
+      <div style="margin-top:6px">Wie fühlst du dich heute?</div></div>
+      <button class="knopf" id="zum-checkin">Check-in</button></div>`;
+  const teile = ["Energie " + c.energie + "/5", "Knie " + (c.knie ?? 0), "Hüfte " + (c.huefte ?? 0)];
+  if(c.infekt && c.infekt!=="nein") teile.push("Infekt");
+  (c.schnell||[]).forEach(k => teile.push(SCHNELL[k]));
+  return `<div class="karte"><div class="checkin-zeile"><span><b style="color:var(--tinte)">Check-in:</b> ${esc(teile.join(" · "))}</span>
+    <button class="link" id="zum-checkin">Ändern</button></div></div>`;
+}
+
+function ampelKarte(t){
+  if(!t.farbe) return `<div class="karte"><span class="augenbraue">Bereitschaft</span><div class="leer">Der Morgenbericht für heute ist noch nicht da – er kommt, sobald deine Uhr den Schlaf synchronisiert hat.</div></div>`;
+  const a = AMPEL[t.farbe];
+  const angepasst = t.garmin && t.farbe!==t.garmin;
+  const kopf = t.score!==null
+    ? `<span class="score">${t.score}</span><span class="von">/ 100</span>`
+    : `<span class="score" style="font-size:32px;line-height:40px">Check-in</span>`;
+  const anpassung = (t.gruende.length || t.hinweise.length)
+    ? `<ul class="anpassung" style="padding-left:18px;margin-bottom:0">${
+        (angepasst ? [`Angepasst von ${AMPEL[t.garmin].wort} auf ${a.wort}: ${t.gruende.join(", ")}.`] : [])
+        .concat(t.hinweise).map(h => `<li>${esc(h)}</li>`).join("")}</ul>` : "";
   return `<div class="karte">
     <span class="augenbraue">Bereitschaft heute</span>
-    <div class="score-zeile"><span class="score">${b.score}</span><span class="von">/ 100</span><span class="pille ${a.klasse}">● ${a.wort}</span></div>
-    <div class="rat">${esc(RAT[b.farbe])}</div>
-    <div class="spur"><i style="width:${Math.max(0,Math.min(100,b.score))}%;background:${a.farbe}"></i></div>
+    <div class="score-zeile">${kopf}<span class="pille ${a.klasse}">● ${a.wort}</span></div>
+    <div class="rat">${esc(RAT[t.farbe])}</div>${anpassung}
+    ${t.score!==null ? `<div class="spur"><i style="width:${Math.max(0,Math.min(100,t.score))}%;background:${AMPEL[t.garmin].farbe}"></i></div>` : ""}
+    ${angepasst ? `<div class="werte-zeile">Garmin-Werte allein: ${t.score} · ${AMPEL[t.garmin].wort}</div>` : ""}
   </div>`;
+}
+
+// Was heute für eine Einheit gilt (wie scripts/plan.py, plus Check-in)
+function heuteFuer(e, t){
+  if(e.sport==="laufen" && t.laufsperre)
+    return {label:"Heute kein Lauf:", text:"Knie oder Hüfte über 3/10 – stattdessen locker Rad oder Schwimmen.", farbe:"rot"};
+  if(!t.farbe) return null;
+  const v = e.varianten || {};
+  if(t.wenigZeit && t.farbe==="gruen" && v.gelb) return {label:"Kurzversion (wenig Zeit):", text:v.gelb, farbe:"gelb"};
+  if(v[t.farbe]) return {label:`Heute bei ${AMPEL[t.farbe].wort}:`, text:v[t.farbe], farbe:t.farbe};
+  const hart = e.intensitaet==="hart" || ["kraft_tag_a","rad_schwelle","langer_lauf"].includes(e.art);
+  if(t.farbe==="rot" && hart) return {label:"Vorschlag:", text:"Verschieben oder als lockere Einheit in Zone 1–2 machen.", farbe:"rot"};
+  if(t.farbe==="rot" && ["laufen","rad","schwimmen"].includes(e.sport)) return {label:"Vorschlag:", text:"Wenn überhaupt: kurz und sehr locker.", farbe:"rot"};
+  if(t.farbe==="gelb" && hart) return {label:"Vorschlag:", text:"Kürzen oder Intensität rausnehmen, z. B. eine Wiederholung weniger.", farbe:"gelb"};
+  if(t.wenigZeit) return {label:"Wenig Zeit:", text:"Kernteil machen, Ein- und Auslaufen bzw. Zusatzübungen kürzen.", farbe:"gelb"};
+  return null;
+}
+function varianteHtml(h, stil=""){
+  return `<div class="variante" style="${stil}background:${AMPEL[h.farbe].tint}"><b>${esc(h.label)}</b> ${esc(h.text)}</div>`;
 }
 
 function einheitHtml(e, istHeute){
@@ -224,11 +317,8 @@ function einheitHtml(e, istHeute){
   const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "");
   const pille = e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : "";
   let unten = e.details ? `<div class="einheit-details">${esc(e.details)}</div>` : "";
-  const b = zustand.bericht;
-  if(istHeute && b && e.varianten && e.varianten[b.farbe]){
-    const a = AMPEL[b.farbe];
-    unten = `<div class="variante" style="background:${a.tint}"><b>Heute bei ${a.wort}:</b> ${esc(e.varianten[b.farbe])}</div>`;
-  }
+  const h = istHeute ? heuteFuer(e, tagesAmpel()) : null;
+  if(h) unten = varianteHtml(h);
   const kraftArt = e.art && zustand.uebungen[e.art] ? e.art : null;
   const log = kraftArt && zustand.kraft.find(k => k.datum===e.datum && k.einheit===kraftArt);
   const knopf = kraftArt && e.datum<=HEUTE
@@ -251,13 +341,94 @@ function zeigeHeute(){
       liste.length ? liste.map(e => einheitHtml(e, i===0)).join("") : `<span class="leer">Ruhetag</span>`}</div></div>`;
   }
   const d = new Date();
+  const t = tagesAmpel();
   $("#app").innerHTML = `
     <h1>${WOCHENTAGE[d.getDay()]}, ${d.getDate()}.${d.getMonth()+1}.</h1>
-    ${ampelKarte()}
+    ${t.checkin ? ampelKarte(t) + checkinKarte(t) : checkinKarte(t) + ampelKarte(t)}
     <div class="karte"><span class="augenbraue">Heute & die nächsten Tage</span>${tage}</div>
     <div class="fuss"><button id="abmelden">Token auf diesem Gerät entfernen</button></div>`;
   document.querySelectorAll("[data-log]").forEach(k => k.onclick = () => zeigeKraftLog(k.dataset.log));
+  $("#zum-checkin").onclick = zeigeCheckin;
   $("#abmelden").onclick = () => { if(confirm("Token auf diesem Gerät entfernen?")){ schreib(TOKEN_KEY, null); zeigeEinrichtung(); } };
+}
+
+// ---------- Check-in ----------
+let ci = null;
+function zeigeCheckin(){
+  const alt = checkinHeute();
+  ci = alt ? structuredClone(alt) : {datum:HEUTE, energie:null, knie:0, huefte:0, infekt:"nein", schnell:[], knie_ruhig:null, notiz:""};
+  const lauf = liefGestern();
+  const seg = (name, optionen, text=false) => `<div class="segment ${text?"text":""}" data-seg="${name}">${
+    Object.entries(optionen).map(([w, l]) => `<button type="button" data-wert="${w}">${esc(l)}</button>`).join("")}</div>`;
+  const regler = (name, titel) => `<div class="frage"><div class="frage-titel">${titel}<span class="wert" id="w-${name}">${ci[name]}</span></div>
+    <input type="range" min="0" max="10" step="1" value="${ci[name]}" data-regler="${name}">
+    <div class="skala"><span>0 kein Schmerz</span><span>3 Grenze</span><span>10</span></div></div>`;
+  $("#app").innerHTML = `<button class="zurueck" id="zurueck">‹ Übersicht</button>
+    <h1 style="margin-top:4px">Morgen-Check-in</h1>
+    <div class="karte">
+      <div class="frage"><div class="frage-titel">Energie</div>${seg("energie", {1:"1",2:"2",3:"3",4:"4",5:"5"})}
+        <div class="skala"><span>leer</span><span>top</span></div></div>
+      ${regler("knie", "Knie außen")}
+      ${regler("huefte", "Hüfte")}
+    </div>
+    <div class="karte">
+      <div class="frage"><div class="frage-titel">Infektgefühl</div>${seg("infekt", INFEKT, true)}</div>
+      <div class="frage"><div class="frage-titel">Heute</div><div class="segment text" data-mehr="schnell">${
+        Object.entries(SCHNELL).map(([w,l]) => `<button type="button" data-wert="${w}">${esc(l)}</button>`).join("")}</div></div>
+      ${lauf ? `<div class="frage"><div class="frage-titel">War das Knie heute Morgen ruhig?</div>${seg("knie_ruhig", {true:"Ja", false:"Nein"})}</div>` : ""}
+    </div>
+    <div class="karte"><div class="frage"><div class="frage-titel">Notiz</div>
+      <textarea class="text" id="notiz" placeholder="Optional – z. B. schlecht geschlafen, Stress, Halskratzen">${esc(ci.notiz||"")}</textarea></div></div>`;
+  $("#zurueck").onclick = zeigeHeute;
+  zeichneAuswahl();
+  document.querySelectorAll("[data-seg] button").forEach(b => b.onclick = () => {
+    const name = b.parentElement.dataset.seg; let w = b.dataset.wert;
+    ci[name] = name==="energie" ? Number(w) : name==="knie_ruhig" ? w==="true" : w;
+    zeichneAuswahl();
+  });
+  document.querySelectorAll("[data-mehr] button").forEach(b => b.onclick = () => {
+    const w = b.dataset.wert; ci.schnell = ci.schnell.includes(w) ? ci.schnell.filter(x => x!==w) : ci.schnell.concat(w);
+    zeichneAuswahl();
+  });
+  document.querySelectorAll("[data-regler]").forEach(r => r.oninput = () => {
+    ci[r.dataset.regler] = Number(r.value); $("#w-" + r.dataset.regler).textContent = r.value; zeichneAuswahl();
+  });
+  $("#notiz").oninput = e => { ci.notiz = e.target.value; };
+  $("#leiste").hidden = false;
+  $("#speichern").textContent = "Check-in speichern";
+  $("#speichern").onclick = speichereCheckin;
+  $("#status").textContent = alt ? "Heute schon eingetragen – du kannst ihn ändern." : "";
+  window.scrollTo(0,0);
+}
+function zeichneAuswahl(){
+  document.querySelectorAll("[data-seg]").forEach(s => s.querySelectorAll("button").forEach(b => {
+    const wert = ci[s.dataset.seg];
+    b.classList.toggle("an", String(wert)===b.dataset.wert);
+    b.classList.toggle("warn", s.dataset.seg==="infekt" && b.dataset.wert!=="nein" && String(wert)===b.dataset.wert);
+  }));
+  document.querySelectorAll("[data-mehr] button").forEach(b => b.classList.toggle("an", ci.schnell.includes(b.dataset.wert)));
+  document.querySelectorAll("[data-regler]").forEach(r => { r.style.accentColor = Number(r.value) > 3 ? "var(--rot)" : "var(--tinte)"; });
+}
+async function speichereCheckin(){
+  if(ci.energie===null){ $("#status").textContent = "Bitte noch die Energie auswählen."; return; }
+  const knopf = $("#speichern"); knopf.disabled = true; $("#status").textContent = "Speichere …";
+  const eintrag = {...ci, notiz: (ci.notiz||"").trim(), gespeichert: new Date().toISOString()};
+  if(eintrag.knie_ruhig===null) delete eintrag.knie_ruhig;
+  // Resultierende Ampel für spätere Auswertung mitspeichern
+  const vorher = zustand.checkins;
+  zustand.checkins = vorher.filter(c => c.datum!==HEUTE).concat(eintrag);
+  const t = tagesAmpel();
+  zustand.checkins = vorher;
+  if(t.farbe){ eintrag.farbe_final = t.farbe; if(t.garmin) eintrag.farbe_garmin = t.garmin; }
+  try{
+    zustand.checkins = await aendere("daten/checkins.json", [], liste =>
+      liste.filter(c => c.datum!==HEUTE).concat(eintrag).sort((a,b) => a.datum < b.datum ? -1 : 1),
+      "Check-in " + HEUTE);
+    $("#speichern").textContent = "Speichern";
+    zeigeHeute();
+  }catch(err){
+    $("#status").textContent = err.message==="token" ? "Token ungültig – bitte neu einrichten." : err.message;
+  }finally{ knopf.disabled = false; }
 }
 
 // ---------- Kraft-Log ----------
@@ -291,9 +462,8 @@ function zeigeKraftLog(planId){
   const art = e.art;
   const def = zustand.uebungen[art];
   offen = {eintrag:e, art, werte: startwerte(art, e.datum)};
-  const b = zustand.bericht;
-  const variante = (e.datum===HEUTE && b && e.varianten && e.varianten[b.farbe])
-    ? `<div class="variante" style="margin:0 0 12px;background:${AMPEL[b.farbe].tint}"><b>Heute bei ${AMPEL[b.farbe].wort}:</b> ${esc(e.varianten[b.farbe])}</div>` : "";
+  const h = e.datum===HEUTE ? heuteFuer(e, tagesAmpel()) : null;
+  const variante = h ? varianteHtml(h, "margin:0 0 12px;") : "";
 
   let html = `<button class="zurueck" id="zurueck">‹ Übersicht</button>
     <h1 style="margin-top:4px">${esc(def.name)}</h1>${variante}`;
@@ -307,6 +477,7 @@ function zeigeKraftLog(planId){
   bindeKraft();
   $("#leiste").hidden = false;
   setzeStatus();
+  $("#speichern").textContent = "Speichern";
   $("#speichern").onclick = speichereKraft;
   window.scrollTo(0,0);
 }
