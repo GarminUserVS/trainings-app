@@ -165,6 +165,11 @@ button.k-akt{appearance:none;border:0;background:none;font:inherit;width:100%;te
 .d-variante b{display:block;font-size:13px;margin-bottom:2px}
 .d-variante.gross{font-size:17px;line-height:1.5;padding:14px 16px}
 .d-mehr{margin-top:16px}
+ul.punkte{margin:4px 0 0;padding-left:18px}
+ul.punkte li{margin:3px 0}
+.d-text ul.punkte{margin-top:14px;font-size:16px}
+.d-variante.gross ul.punkte li{margin:5px 0}
+.einheit-details ul.punkte{margin-top:2px}
 .d-mehr summary{cursor:pointer;color:var(--blau);font-weight:600;font-size:14px;list-style:none;margin-bottom:10px}
 .d-mehr summary::-webkit-details-marker{display:none}
 .d-mehr summary::after{content:" ▸"}
@@ -263,6 +268,12 @@ function tagLabel(iso, i){ if(i===0) return "Heute"; if(i===1) return "Morgen"; 
 function lies(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
 function schreib(key, wert){ try{ wert===null ? localStorage.removeItem(key) : localStorage.setItem(key, wert); }catch(e){} }
 const HEUTE = isoDatum(new Date());
+// Übungen/Intervalle können als Liste gespeichert sein: dann untereinander anzeigen
+function inhalt(x){
+  if(Array.isArray(x)) return `<ul class="punkte">${x.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
+  return esc(x);
+}
+function alsText(x){ return Array.isArray(x) ? x.join(" · ") : (x || ""); }
 
 // ---------- GitHub-Zugriff ----------
 function b64zuText(b64){ const bin=atob(b64.replace(/\n/g,"")); const bytes=Uint8Array.from(bin, c=>c.charCodeAt(0)); return new TextDecoder().decode(bytes); }
@@ -463,14 +474,14 @@ function heuteFuer(e, t){
   return null;
 }
 function varianteHtml(h, stil=""){
-  return `<div class="variante" style="${stil}background:${AMPEL[h.farbe].tint}"><b>${esc(h.label)}</b> ${esc(h.text)}</div>`;
+  return `<div class="variante" style="${stil}background:${AMPEL[h.farbe].tint}"><b>${esc(h.label)}</b> ${inhalt(h.text)}</div>`;
 }
 
 function einheitHtml(e, istHeute){
   const farbe = SPORT_FARBEN[e.sport] || "#BDB7AD";
   const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "");
   const pille = e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : "";
-  let unten = e.details ? `<div class="einheit-details">${esc(e.details)}</div>` : "";
+  let unten = e.details ? `<div class="einheit-details">${inhalt(e.details)}</div>` : "";
   const h = istHeute ? heuteFuer(e, tagesAmpel()) : null;
   if(h) unten = varianteHtml(h);
   const kraftArt = e.art && zustand.uebungen[e.art] ? e.art : null;
@@ -940,16 +951,16 @@ function detailKarte(){
   if(heute){
     hauptteil = `<div class="d-abschnitt"><div class="augenbraue">Heute zu tun</div>
       <div class="d-variante gross" style="border-color:${AMPEL[heute.farbe].farbe};background:${AMPEL[heute.farbe].tint}">
-      <b style="color:${heute.farbe==="gelb" ? "#B7800C" : AMPEL[heute.farbe].farbe}">${esc(heute.label.replace(/:$/, ""))}</b><div>${esc(heute.text)}</div></div></div>`;
+      <b style="color:${heute.farbe==="gelb" ? "#B7800C" : AMPEL[heute.farbe].farbe}">${esc(heute.label.replace(/:$/, ""))}</b><div>${inhalt(heute.text)}</div></div></div>`;
     if(e.details) alternativen.push(["Normalfall", e.details, null]);
   } else {
-    hauptteil = e.details ? `<p class="d-text">${esc(e.details)}</p>` : "";
+    hauptteil = e.details ? `<div class="d-text">${inhalt(e.details)}</div>` : "";
     if(zukunft && Object.keys(v).length) hauptteil += `<p class="klein-grau" style="margin:8px 0 0">Ob die volle oder eine leichtere Variante dran ist, entscheidet am Tag selbst deine Ampel.</p>`;
   }
   for(const f of ["gruen","gelb","rot"]) if(v[f] && !(heute && heute.text===v[f])) alternativen.push([AMPEL[f].wort, v[f], f]);
   const varianten = alternativen.length ? `<details class="d-mehr"><summary>${heute ? "Andere Varianten anzeigen" : "Varianten je nach Ampel anzeigen"}</summary>${
     alternativen.map(([titel, text, f]) => `<div class="d-variante" style="border-color:${f ? AMPEL[f].farbe : "#BDB7AD"}">
-      <b style="color:${f==="gelb" ? "#B7800C" : f ? AMPEL[f].farbe : "var(--grau)"}">${esc(titel)}</b><div>${esc(text)}</div></div>`).join("")}</details>` : "";
+      <b style="color:${f==="gelb" ? "#B7800C" : f ? AMPEL[f].farbe : "var(--grau)"}">${esc(titel)}</b><div>${inhalt(text)}</div></div>`).join("")}</details>` : "";
   const verlauf = [];
   if(e.verschoben_von) verlauf.push(`Verschoben von ${datumKurz(e.verschoben_von)}`);
   if(e.verkuerzt) verlauf.push(e.dauer_min_original ? `Verkürzt von ${e.dauer_min_original} auf ${e.dauer_min} min` : "Verkürzt");
@@ -1039,7 +1050,7 @@ function oeffneAktionen(id){
   const e = zustand.plan.find(x => x.id===id);
   const gestrichen = e.status==="gestrichen";
   const s = sheet(`<div class="sheet-kopf"><div><div class="augenbraue">${datumKurz(e.datum)}</div><h2>${esc(kurzTitel(e))}</h2>
-      ${e.details ? `<div class="klein-grau">${esc(e.details)}</div>` : ""}</div>
+      ${e.details ? `<div class="klein-grau">${esc(alsText(e.details))}</div>` : ""}</div>
       <button class="sheet-zu" aria-label="Schließen">×</button></div>
     <div class="sheet-aktionen">
       ${gestrichen ? `<button class="knopf voll" data-akt="wieder">Wiederherstellen</button>` : `
@@ -1098,7 +1109,7 @@ function zeigeKuerzen(e){
       <button class="sheet-zu" aria-label="Schließen">×</button></div>
     ${mitDauer ? `<label class="feld" for="neue-dauer">Neue Dauer (min)</label>
       <input class="text" id="neue-dauer" inputmode="numeric" value="${Math.max(10, Math.round(e.dauer_min*0.75/5)*5)}">` : ""}
-    ${gelb ? `<div class="variante" style="margin:14px 0 0;background:var(--gelb-t)"><b>Kurzversion:</b> ${esc(gelb)}</div>` : ""}
+    ${gelb ? `<div class="variante" style="margin:14px 0 0;background:var(--gelb-t)"><b>Kurzversion:</b> ${inhalt(gelb)}</div>` : ""}
     <div class="sheet-aktionen" style="margin-top:14px"><button class="knopf voll" id="kuerzen-ok">Verkürzen</button></div>
     <div class="sheet-fehler"></div>`);
   s.querySelector(".sheet-zu").onclick = schliesseSheet;
