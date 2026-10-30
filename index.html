@@ -193,6 +193,15 @@ ul.punkte li{margin:3px 0}
 .zone-min{text-align:right}
 .d-uebung{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--linie);font-size:14px}
 .d-uebung b{text-align:right}
+.u-extras{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{appearance:none;border:1px solid var(--linie);background:none;font:inherit;font-size:13px;color:var(--grau);padding:5px 11px;border-radius:999px;cursor:pointer}
+.chip.an{background:var(--gelb-t);border-color:var(--gelb);color:var(--tinte);font-weight:600}
+.u-notiz{width:100%;margin-top:8px;min-height:44px}
+.karte.spaeter{opacity:.75}
+.karte.spaeter .uebung-name::after{content:" · später";color:#B7800C;font-weight:600;font-size:13px}
+.notiz-zeile{font-size:13px;color:var(--grau);font-style:italic;margin-top:2px}
+.d-notiz{background:var(--spur);border-radius:10px;padding:9px 12px;font-size:14px;margin-top:10px;white-space:pre-wrap}
+.rest-karte{border:2px solid var(--gelb)}
 .d-aktionen{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .d-aktionen .knopf{flex:1 1 40%}
 
@@ -690,13 +699,19 @@ function startwerte(einheitArt, datum){
   if(entwurf){ try{ return JSON.parse(entwurf); }catch(e){} }
   const werte = {};
   for(const u of zustand.uebungen[einheitArt].uebungen){
-    if(vorhanden && vorhanden.uebungen[u.id]){ werte[u.id] = structuredClone(vorhanden.uebungen[u.id]); continue; }
-    if(u.erfassung==="abhaken"){ werte[u.id] = {erledigt:false}; continue; }
-    const letzte = letzteWerte(u.id, datum);
-    const vorlage = letzte ? letzte.saetze : (u.ziel || [{}, {}, {}]);
-    // Vorschlag als Platzhalter, damit erst eigene Eingaben zählen
-    werte[u.id] = {saetze: vorlage.map(s => ({wdh:null, kg:null, v_wdh:s.wdh ?? null, v_kg:s.kg ?? null}))};
+    const v = vorhanden && vorhanden.uebungen[u.id];
+    if(u.erfassung==="abhaken"){ werte[u.id] = {erledigt: !!(v && v.erledigt)}; }
+    else if(v && v.saetze){ werte[u.id] = {saetze: structuredClone(v.saetze)}; }
+    else {
+      const letzte = letzteWerte(u.id, datum);
+      const vorlage = letzte ? letzte.saetze : (u.ziel || [{}, {}, {}]);
+      // Vorschlag als Platzhalter, damit erst eigene Eingaben zählen
+      werte[u.id] = {saetze: vorlage.map(s => ({wdh:null, kg:null, v_wdh:s.wdh ?? null, v_kg:s.kg ?? null}))};
+    }
+    if(v && v.spaeter) werte[u.id].spaeter = true;
+    if(v && v.notiz) werte[u.id].notiz = v.notiz;
   }
+  werte._notiz = (vorhanden && vorhanden.notiz) || "";
   return werte;
 }
 
@@ -720,10 +735,15 @@ function zeigeKraftLog(planId){
       if(station!==null) html += `</div>`;
       station = u.station; html += `<div class="augenbraue station">${esc(station)}</div><div class="gruppe">`;
     }
-    html += `<div class="karte" data-uebung="${esc(u.id)}">${uebungHtml(u)}</div>`;
+    html += `<div class="karte ${offen.werte[u.id].spaeter ? "spaeter" : ""}" data-uebung="${esc(u.id)}">${uebungHtml(u)}</div>`;
   }
   if(station!==null) html += `</div>`;
+  html += `<div class="augenbraue station">Notiz zum Training</div>
+    <div class="karte"><textarea class="text" id="einheit-notiz" placeholder="Optional – z. B. „Bauch & Physio aus Zeitgründen später zu Hause“">${esc(offen.werte._notiz || "")}</textarea></div>
+    <div id="rest-bereich">${restKarte()}</div>`;
   $("#app").innerHTML = html;
+  $("#einheit-notiz").oninput = ev => { offen.werte._notiz = ev.target.value; merkeEntwurf(); };
+  bindeRest();
   $("#zurueck").onclick = kamVonKalender ? zeigeKalender : zeigeHeute;
   bindeKraft();
   $("#leiste").hidden = false;
@@ -733,10 +753,18 @@ function zeigeKraftLog(planId){
   window.scrollTo(0,0);
 }
 
+// Unter jeder Übung: „Später machen“ und eine kurze Notiz
+function extrasHtml(u, w){
+  const offenNotiz = w.notiz || w._notizOffen;
+  return `<div class="u-extras">
+      <button class="chip ${w.spaeter ? "an" : ""}" data-spaeter="${esc(u.id)}">${w.spaeter ? "✓ Später machen" : "Später machen"}</button>
+      ${offenNotiz ? "" : `<button class="chip" data-notiz-auf="${esc(u.id)}">+ Notiz</button>`}</div>
+    ${offenNotiz ? `<textarea class="text u-notiz" data-notiz="${esc(u.id)}" placeholder="z. B. Knie leicht gemerkt, Gerät besetzt …">${esc(w.notiz || "")}</textarea>` : ""}`;
+}
 function uebungHtml(u){
   const w = offen.werte[u.id];
   if(u.erfassung==="abhaken"){
-    return `<label class="haken"><input type="checkbox" data-haken="${esc(u.id)}" ${w.erledigt?"checked":""}><span class="box"></span><span class="uebung-name">${esc(u.name)}</span></label>`;
+    return `<label class="haken"><input type="checkbox" data-haken="${esc(u.id)}" ${w.erledigt?"checked":""}><span class="box"></span><span class="uebung-name">${esc(u.name)}</span></label>${extrasHtml(u, w)}`;
   }
   const letzte = letzteWerte(u.id, offen.eintrag.datum);
   const info = [u.einbeinig ? "pro Bein" : "", letzte ? "Letztes Mal: " + kurz(letzte.saetze) : (u.ziel ? "Vorgabe: " + kurz(u.ziel) : "")].filter(Boolean).join(" · ");
@@ -756,19 +784,29 @@ function uebungHtml(u){
   return `<div class="uebung-kopf"><span class="uebung-name">${esc(u.name)}</span></div>
     ${info ? `<div class="hinweis">${esc(info)}</div>` : ""}
     <div class="saetze">${zeilen}</div>
-    <button class="knopf klein hell satz-plus" data-plus="1">+ Satz</button>`;
+    <button class="knopf klein hell satz-plus" data-plus="1">+ Satz</button>${extrasHtml(u, w)}`;
 }
 
 function neuZeichnen(id){
   const u = zustand.uebungen[offen.art].uebungen.find(x => x.id===id);
   const karte = document.querySelector(`[data-uebung="${id}"]`);
   karte.innerHTML = uebungHtml(u);
+  karte.classList.toggle("spaeter", !!offen.werte[id].spaeter);
   bindeKraft(karte);
 }
 
 function bindeKraft(wurzel=document){
-  wurzel.querySelectorAll("[data-haken]").forEach(el => el.onchange = () => { offen.werte[el.dataset.haken].erledigt = el.checked; merkeEntwurf(); });
+  wurzel.querySelectorAll("[data-haken]").forEach(el => el.onchange = () => { const w = offen.werte[el.dataset.haken]; w.erledigt = el.checked; if(el.checked && w.spaeter){ w.spaeter = false; neuZeichnen(el.dataset.haken); } merkeEntwurf(); });
   wurzel.querySelectorAll("[data-uebung]").forEach(karte => bindeKarte(karte));
+  wurzel.querySelectorAll("[data-spaeter]").forEach(b => b.onclick = () => {
+    const w = offen.werte[b.dataset.spaeter]; w.spaeter = !w.spaeter; if(w.spaeter) w.erledigt = false;
+    merkeEntwurf(); neuZeichnen(b.dataset.spaeter);
+  });
+  wurzel.querySelectorAll("[data-notiz-auf]").forEach(b => b.onclick = () => {
+    const id = b.dataset.notizAuf; offen.werte[id]._notizOffen = true; neuZeichnen(id);
+    const t = document.querySelector(`[data-notiz="${id}"]`); if(t) t.focus();
+  });
+  wurzel.querySelectorAll("[data-notiz]").forEach(t => t.oninput = () => { offen.werte[t.dataset.notiz].notiz = t.value; merkeEntwurf(); });
   if(wurzel!==document && wurzel.dataset && wurzel.dataset.uebung) bindeKarte(wurzel);
 }
 function bindeKarte(karte){
@@ -793,10 +831,46 @@ function bindeKarte(karte){
   };
 }
 
+// Übungen, die auf „später“ stehen, als eigene lockere Einheit einplanen (z. B. Pilates/Mobility zu Hause)
+function restNamen(){
+  return zustand.uebungen[offen.art].uebungen.filter(u => offen.werte[u.id] && offen.werte[u.id].spaeter).map(u => u.name);
+}
+function restEinheit(){ return zustand.plan.find(x => x.rest_von===offen.eintrag.id && x.status!=="gestrichen"); }
+function restKarte(){
+  const namen = restNamen();
+  if(!namen.length) return "";
+  const da = restEinheit();
+  if(da) return `<div class="karte rest-karte"><span class="augenbraue">Rest eingeplant</span>
+    <div style="margin-top:4px"><b>${esc(da.titel)}</b> · ${esc(datumKurz(da.datum))}</div>
+    <div class="klein-grau">${esc(alsText(da.details))}</div></div>`;
+  return `<div class="karte rest-karte"><span class="augenbraue">Noch offen</span>
+    <div style="margin:4px 0 10px">${esc(namen.join(", "))}</div>
+    <div class="klein-grau" style="margin-bottom:10px">Als eigene lockere Einheit einplanen? Wenn du dafür z. B. Pilates oder Mobility auf der Uhr startest, wird sie automatisch als erledigt erkannt.</div>
+    <div class="d-aktionen" style="margin:0"><button class="knopf" data-rest="0">Heute später</button><button class="knopf hell" data-rest="1">Morgen</button></div>
+    <div class="sheet-fehler" id="rest-fehler"></div></div>`;
+}
+function bindeRest(){ document.querySelectorAll("[data-rest]").forEach(b => b.onclick = () => planeRest(+b.dataset.rest)); }
+function zeigeRest(){ const r = $("#rest-bereich"); if(r){ r.innerHTML = restKarte(); bindeRest(); } }
+async function planeRest(tage){
+  const namen = restNamen(), e = offen.eintrag;
+  const datum = plusTage(e.datum < HEUTE ? HEUTE : e.datum, tage);
+  document.querySelectorAll("[data-rest]").forEach(b => b.disabled = true);
+  const neu = {id: e.id + "-rest", datum, sport:"mobilitaet", titel:"Rest von " + (kurzTitel(e).replace(/^Gym – /, "")),
+    dauer_min: Math.max(15, namen.length * 10), intensitaet:"locker", details: namen, rest_von: e.id, status:"geplant"};
+  try{
+    zustand.plan = await aendere("daten/plan.json", [], plan => plan.filter(x => x.id!==neu.id).concat(neu)
+      .sort((a,b) => a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0), `Plan: Rest von ${kurzTitel(e)} am ${datum} eingeplant`);
+    zeigeRest();
+  }catch(err){
+    document.querySelectorAll("[data-rest]").forEach(b => b.disabled = false);
+    const f = $("#rest-fehler"); if(f) f.textContent = err.message==="token" ? "Token ungültig." : err.message;
+  }
+}
+
 let ungespeichert = false;
 function merkeEntwurf(){
   schreib(ENTWURF_KEY + offen.eintrag.datum + "_" + offen.art, JSON.stringify(offen.werte));
-  ungespeichert = true; setzeStatus();
+  ungespeichert = true; setzeStatus(); zeigeRest();
 }
 function setzeStatus(text){
   const vorhanden = zustand.kraft.find(k => k.datum===offen.eintrag.datum && k.einheit===offen.art);
@@ -807,24 +881,32 @@ function setzeStatus(text){
 function bereinigt(){
   const aus = {};
   for(const [id, w] of Object.entries(offen.werte)){
+    if(id.startsWith("_")) continue;
+    const x = {};
     if(w.saetze){
       const saetze = w.saetze.filter(s => s.wdh!==null)
         .map(s => { const x = {wdh:s.wdh}; const kg = s.kg!==null ? s.kg : s.v_kg; if(kg!==null && kg!==undefined) x.kg = kg; return x; });
-      if(saetze.length) aus[id] = {saetze};
-    } else if(w.erledigt){ aus[id] = {erledigt:true}; }
+      if(saetze.length) x.saetze = saetze;
+    } else if(w.erledigt){ x.erledigt = true; }
+    if(w.spaeter) x.spaeter = true;
+    if(w.notiz && w.notiz.trim()) x.notiz = w.notiz.trim();
+    if(Object.keys(x).length) aus[id] = x;
   }
   return aus;
 }
 
 async function speichereKraft(){
   const uebungen = bereinigt();
-  if(!Object.keys(uebungen).length){ setzeStatus("Noch nichts eingetragen."); return; }
+  const notiz = (offen.werte._notiz || "").trim();
+  if(!Object.keys(uebungen).length && !notiz){ setzeStatus("Noch nichts eingetragen."); return; }
   const knopf = $("#speichern"); knopf.disabled = true; setzeStatus("Speichere …");
   const datum = offen.eintrag.datum, art = offen.art;
   try{
     zustand.kraft = await aendere("daten/kraft.json", [], liste => {
       const rest = liste.filter(k => !(k.datum===datum && k.einheit===art));
-      rest.push({datum, einheit:art, plan_id: offen.eintrag.id, uebungen, gespeichert: new Date().toISOString()});
+      const eintrag = {datum, einheit:art, plan_id: offen.eintrag.id, uebungen, gespeichert: new Date().toISOString()};
+      if(notiz) eintrag.notiz = notiz;
+      rest.push(eintrag);
       return rest.sort((a,b) => a.datum < b.datum ? -1 : 1);
     }, `Kraft-Log ${datum} (${zustand.uebungen[art].name})`);
     schreib(ENTWURF_KEY + datum + "_" + art, null);
@@ -868,7 +950,7 @@ function syncText(){
   return `${st ? "Stand " + esc(st) + " · " : ""}<b>↻ Trainings laden</b>`;
 }
 function zeigeSync(){ const b = $("#sync"); if(b){ b.className = "sync" + (sync.laeuft?" laeuft":""); b.disabled = sync.laeuft; b.innerHTML = syncText(); } }
-function neuZeichnen(){ zustand.ansicht==="kalender" ? zeigeKalender() : zeigeHeute(); }
+function ansichtNeu(){ zustand.ansicht==="kalender" ? zeigeKalender() : zeigeHeute(); }
 async function ghActions(pfad, opt={}){
   return fetch("https://api.github.com/repos/" + REPO + "/actions/" + pfad, {method: opt.method || "GET", cache:"no-store",
     headers:{"Authorization":"Bearer "+token(), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"},
@@ -898,7 +980,7 @@ async function holeTrainings(){
     const neu = zustand.aktivitaeten.length - vorher;
     sync.laeuft = false;
     sync.text = neu > 0 ? `${neu} neue${neu===1?"s":""} Training${neu===1?"":"s"} geladen` : "Aktuell – nichts Neues";
-    neuZeichnen();
+    ansichtNeu();
   }catch(err){
     sync.laeuft = false;
     sync.text = err.message==="rechte" ? "Token braucht „Actions: Read and write“" : err.message;
@@ -1111,9 +1193,10 @@ function kraftHtml(e){
   if(!log || !def) return "";
   const zeilen = def.uebungen.filter(u => log.uebungen[u.id]).map(u => {
     const w = log.uebungen[u.id];
-    return `<div class="d-uebung"><span>${esc(u.name)}</span><b>${w.erledigt ? "✓" : esc(kurz(w.saetze))}</b></div>`;
+    const wert = w.saetze ? esc(kurz(w.saetze)) : w.erledigt ? "✓" : w.spaeter ? `<span style="color:#B7800C">später</span>` : "–";
+    return `<div class="d-uebung"><span>${esc(u.name)}${w.notiz ? `<div class="notiz-zeile">${esc(w.notiz)}</div>` : ""}</span><b>${wert}</b></div>`;
   }).join("");
-  return `<div class="d-abschnitt"><div class="augenbraue">Kraft-Log</div>${zeilen}</div>`;
+  return `<div class="d-abschnitt"><div class="augenbraue">Kraft-Log</div>${zeilen}${log.notiz ? `<div class="d-notiz">${esc(log.notiz)}</div>` : ""}</div>`;
 }
 function detailKarte(){
   if(!auswahl) return `<div class="karte leer">Keine Einheiten in dieser Woche. Mit + fügst du eine hinzu.</div>`;
@@ -1154,6 +1237,9 @@ function detailKarte(){
   if(e.verkuerzt) verlauf.push(e.dauer_min_original ? `Verkürzt von ${e.dauer_min_original} auf ${e.dauer_min} min` : "Verkürzt");
   if(e.umgewandelt_von) verlauf.push(`Umgewandelt aus: ${e.umgewandelt_von.titel || SPORT_NAMEN[e.umgewandelt_von.sport]}`);
   if(gestrichen) verlauf.push("Gestrichen");
+  if(e.rest_von){ const urs = zustand.plan.find(x => x.id===e.rest_von); verlauf.push("Rest von " + (urs ? kurzTitel(urs) + " am " + datumKurz(urs.datum) : "einer Einheit")); }
+  const rest = zustand.plan.find(x => x.rest_von===e.id && x.status!=="gestrichen");
+  if(rest) verlauf.push(`Teilweise – Rest am ${datumKurz(rest.datum)}`);
   const regel = gestrichen ? [] : verstoesse(e, e.datum);
   const kraftKnopf = e.art && zustand.uebungen[e.art] && e.datum<=HEUTE && !gestrichen
     ? `<button class="knopf hell" data-detail="log">${zustand.kraft.some(k => k.datum===e.datum && k.einheit===e.art) ? "Kraft-Log ansehen" : "Training eintragen"}</button>` : "";
@@ -1164,10 +1250,12 @@ function detailKarte(){
     ${hauptteil}
     ${regel.length ? `<div class="warnung"><b>Regelhinweis:</b><ul>${regel.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
     ${verlauf.length ? `<div class="d-verlauf">${verlauf.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
+    ${e.notiz ? `<div class="d-notiz"><b>Notiz:</b> ${esc(e.notiz)}</div>` : ""}
     ${(() => { const spalten = [varianten, (fertig ? aktivitaetHtml(fertig) : "") + kraftHtml(e)].filter(Boolean);
       return `<div class="d-raster ${spalten.length < 2 ? "einspaltig" : ""}">${spalten.map(x => `<div>${x}</div>`).join("")}</div>`; })()}
     <div class="d-aktionen">
       ${kraftKnopf}
+      <button class="knopf hell" data-detail="notiz">${e.notiz ? "Notiz ändern" : "Notiz"}</button>
       ${gestrichen ? `<button class="knopf" data-detail="wieder">Wiederherstellen</button>` : `
       <button class="knopf hell" data-detail="verschieben">Verschieben</button>
       <button class="knopf hell" data-detail="kuerzen">Verkürzen</button>
@@ -1181,6 +1269,7 @@ function bindeDetail(){
   if(!e) return;
   document.querySelectorAll("[data-detail]").forEach(b => b.onclick = () => ({
     log: () => zeigeKraftLog(e.id),
+    notiz: () => zeigeNotiz(e),
     verschieben: () => zeigeVerschieben(e),
     kuerzen: () => zeigeKuerzen(e),
     umwandeln: () => zeigeUmwandeln(e),
@@ -1310,6 +1399,19 @@ function zeigeKuerzen(e){
       if(gelb){ x.details_original = x.details_original || x.details; x.details = gelb; }
       return x;
     }), `Plan: ${kurzTitel(e)} am ${e.datum} verkürzt`);
+  };
+}
+
+function zeigeNotiz(e){
+  const s = sheet(`<div class="sheet-kopf"><div><div class="augenbraue">Notiz · ${datumKurz(e.datum)}</div><h2>${esc(kurzTitel(e))}</h2></div>
+      <button class="sheet-zu" aria-label="Schließen">×</button></div>
+    <textarea class="text" id="e-notiz" placeholder="z. B. nur Geräte gemacht, Rest später · Knie 2/10 · war zu leicht">${esc(e.notiz || "")}</textarea>
+    <div class="sheet-aktionen" style="margin-top:14px"><button class="knopf voll" id="notiz-ok">Speichern</button></div>
+    <div class="sheet-fehler"></div>`);
+  s.querySelector(".sheet-zu").onclick = schliesseSheet;
+  s.querySelector("#notiz-ok").onclick = () => {
+    const t = s.querySelector("#e-notiz").value.trim();
+    aenderePlan(e.id, ersetzeEinheit(e.id, x => { if(t) x.notiz = t; else delete x.notiz; return x; }), `Plan: Notiz zu ${kurzTitel(e)} am ${e.datum}`);
   };
 }
 
