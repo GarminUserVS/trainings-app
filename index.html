@@ -233,6 +233,14 @@ ul.punkte li{margin:3px 0}
 .f-tabelle th,.f-tabelle td{text-align:right;padding:5px 4px;border-top:1px solid var(--linie)}
 .f-tabelle th:first-child,.f-tabelle td:first-child{text-align:left}
 .c-chart{margin-top:4px}
+.tr-oben{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.tr-zahl{margin-top:6px}
+.tr-zahl b{font-size:44px;font-weight:780;letter-spacing:-.02em;line-height:1}
+.tr-zahl span{font-size:14px;color:var(--grau);margin-left:6px}
+.tr-raster{display:grid;gap:0 28px;margin-top:8px}
+.tr-zeile{padding:12px 0;border-top:1px solid var(--linie);font-size:14px}
+.tr-kopf{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+@media (min-width: 900px){ .tr-raster{grid-template-columns:1fr 1fr} }
 .c-flaeche{position:relative;display:flex;gap:3px;height:calc(var(--h) + 30px);align-items:stretch}
 .c-unten{height:30px;display:flex;flex-direction:column;align-items:center}
 .c-spalte{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;cursor:pointer;outline:none;border-radius:6px}
@@ -2208,6 +2216,81 @@ function gefuehlKarte(){
     ${c.length < 10 ? `<p class="klein-grau" style="margin:10px 0 0">Wird mit jedem Check-in aussagekräftiger – ab ca. 2–3 Wochen zeigen sich Muster, z. B. ob dein Gefühl früher als Garmin merkt, dass ein Infekt kommt.</p>` : ""}</div>`;
 }
 
+
+// ---------- Triathlon-Readiness: Kann ich die olympische Distanz schaffen – heute und im Juni? ----------
+const OLY = {schwimmen:1.5, rad:40, laufen:10};
+function triReadiness(){
+  const akt = zustand.aktivitaeten;
+  const ab6 = plusTage(HEUTE, -41);
+  const letzte = sp => akt.filter(a => a.sport===sp && a.datum >= ab6);
+  // Wettkampfdauer je Disziplin aus deinem eigenen Tempo
+  const swims = akt.filter(a => a.sport==="schwimmen" && a.distanz_km > 0.3).slice(-6);
+  const swimPace = swims.length ? swims.reduce((s,a)=>s+a.dauer_min,0) / swims.reduce((s,a)=>s+a.distanz_km,0) : 32;
+  const draussen = akt.filter(a => a.sport==="rad" && a.typ!=="indoor_cycling" && a.typ!=="virtual_ride" && a.distanz_km > 10).slice(-6);
+  const kmh = draussen.length ? 60 * draussen.reduce((s,a)=>s+a.distanz_km,0) / draussen.reduce((s,a)=>s+a.dauer_min,0) : 22;
+  const tempo = laufTempo();
+  const d = {
+    schwimmen:{name:"Schwimmen", ziel_text:"1,5 km", ziel: OLY.schwimmen, einheit:"km",
+      jetzt: Math.max(0, ...letzte("schwimmen").map(a => a.distanz_km || 0)), wk_min: OLY.schwimmen * swimPace},
+    rad:{name:"Rad", ziel_text:`40 km ≈ ${Math.round(OLY.rad / kmh * 60)} min`, ziel: OLY.rad / kmh * 60, einheit:"min",
+      jetzt: Math.max(0, ...letzte("rad").map(a => a.dauer_min || 0)), wk_min: OLY.rad / kmh * 60},
+    laufen:{name:"Laufen", ziel_text:`10 km ≈ ${Math.round(OLY.laufen * tempo)} min`, ziel: OLY.laufen * tempo, einheit:"min",
+      // Laufen: aktueller Stand wie im Laufaufbau (längster Lauf der letzten 14 Tage), wegen Knie-Comeback
+      jetzt: laufaufbau().basis, quelle:"Aktuell längster Lauf (14 Tage)", wk_min: OLY.laufen * tempo}
+  };
+  const gesamtMin = Object.values(d).reduce((s,x)=>s+x.wk_min,0);
+  const bisJuni = plusTage(zustand.einstellungen.ziele?.hauptwettkampf?.datum || "2027-06-13", -14); // 2 Wochen Tapering
+  for(const [sp, x] of Object.entries(d)){
+    x.anteil = Math.min(1, x.jetzt / x.ziel);
+    x.gewicht = x.wk_min / gesamtMin;
+    const start = x.jetzt > 0 ? x.jetzt : x.ziel * 0.25;
+    x.erreicht = x.anteil >= 1 ? null : plusTage(montag(HEUTE), 7 * wochenBis(start, x.ziel));
+    // Laufen: dieselbe Prognose wie der 10-km-Meilenstein im Laufaufbau (über die Zwischenziele gerechnet)
+    if(sp==="laufen" && x.erreicht){ const m = laufaufbau().ziele.find(m => (m.laengster_lauf_km || 0) >= OLY.laufen && m.prognose); if(m) x.erreicht = m.prognose; }
+    x.puffer = x.erreicht ? Math.floor(tageZwischen(x.erreicht, bisJuni) / 7) : Math.floor(tageZwischen(HEUTE, bisJuni) / 7);
+  }
+  // Regelmäßigkeit: in wie vielen der letzten 6 Wochen jede Disziplin mind. 1× dran war
+  const wochen = [...Array(6)].map((_, i) => plusTage(montag(HEUTE), -7 * (6 - i)));
+  const regel = ["schwimmen","rad","laufen"].map(sp => wochen.filter(w => akt.some(a => a.sport===sp && montag(a.datum)===w)).length / 6);
+  const regelmaessig = regel.reduce((a,b)=>a+b,0) / 3;
+  const koppel = new Set(akt.filter(a => a.koppel_id && a.datum >= plusTage(HEUTE, -55)).map(a => a.koppel_id)).size;
+  const distanz = Object.values(d).reduce((s,x)=>s + x.gewicht * x.anteil, 0);
+  const score = Math.round(100 * (0.8 * distanz + 0.2 * regelmaessig));
+  const engpass = Object.entries(d).sort((a,b) => a[1].puffer - b[1].puffer)[0];
+  return {d, regel, regelmaessig, koppel, score, engpass, bisJuni, kmh, swimPace};
+}
+function readinessKarte(){
+  const r = triReadiness();
+  const p = r.engpass[1];
+  const kurs = p.puffer >= 6 ? ["p-gruen", "auf Kurs"] : p.puffer >= 0 ? ["p-gelb", "knapp auf Kurs"] : ["p-rot", "nicht auf Kurs"];
+  const zeilen = ["schwimmen","rad","laufen"].map(sp => {
+    const x = r.d[sp];
+    const jetzt = x.einheit==="km" ? fmtZahl(x.jetzt, 2) + " km" : Math.round(x.jetzt) + " min";
+    return `<div class="tr-zeile"><div class="tr-kopf"><b>${x.name}</b><span class="klein-grau">Wettkampf: ${esc(x.ziel_text)}</span></div>
+      <div class="f-fortschritt" style="margin-top:6px"><div class="spur"><div style="width:${x.anteil*100}%;background:${CHART[sp]}"></div></div>
+        <span><b>${Math.round(x.anteil*100)} %</b></span></div>
+      <div class="klein-grau" style="margin-top:4px">${x.quelle || "Längste Einheit (6 Wochen)"}: ${jetzt} · ${x.anteil >= 1 ? "Distanz schon drin ✓"
+        : `volle Distanz im Training ca. <b>${tagMonat(x.erreicht)}</b> (${x.puffer >= 0 ? x.puffer + " Wo. Puffer" : -x.puffer + " Wo. zu spät"})`}</div></div>`;
+  }).join("");
+  return `<div class="karte tr-karte">
+    <div class="tr-oben"><div><span class="augenbraue">Triathlon-Readiness · Olympische Distanz</span>
+      <div class="tr-zahl"><b>${r.score}</b><span>/ 100 heute</span></div></div>
+      <div style="text-align:right"><span class="pille ${kurs[0]}">${kurs[1]} für Juni</span>
+      <div class="klein-grau" style="margin-top:6px">Engpass: <b>${r.engpass[1].name}</b></div></div></div>
+    <div class="tr-raster">${zeilen}
+      <div class="tr-zeile"><div class="tr-kopf"><b>Regelmäßigkeit</b><span class="klein-grau">alle 3 Disziplinen jede Woche</span></div>
+        <div class="f-fortschritt" style="margin-top:6px"><div class="spur"><div style="width:${r.regelmaessig*100}%;background:var(--tinte)"></div></div><span><b>${Math.round(r.regelmaessig*100)} %</b></span></div>
+        <div class="klein-grau" style="margin-top:4px">Letzte 6 Wochen: Schwimmen ${Math.round(r.regel[0]*6)}/6 · Rad ${Math.round(r.regel[1]*6)}/6 · Laufen ${Math.round(r.regel[2]*6)}/6 Wochen</div></div>
+    </div>
+    <details class="d-mehr"><summary>Wie wird das berechnet?</summary><div class="klein-grau" style="margin-top:8px;line-height:1.5">
+      <b>Heute:</b> 80 % Distanz – je Disziplin längste Einheit der letzten 6 Wochen (Laufen: der letzten 14 Tage, wegen des Knie-Comebacks) geteilt durch die Wettkampfstrecke, gewichtet nach deiner voraussichtlichen Zeit im Wettkampf
+      (Schwimmen ${Math.round(r.d.schwimmen.gewicht*100)} %, Rad ${Math.round(r.d.rad.gewicht*100)} %, Laufen ${Math.round(r.d.laufen.gewicht*100)} %) – plus 20 % Regelmäßigkeit.
+      Wettkampfzeiten aus deinem Tempo: Schwimmen ${fmtZahl(r.swimPace/10, 1)} min/100 m, Rad draußen ${fmtZahl(r.kmh, 1)} km/h, Laufen ${tempoText(laufTempo())}.<br>
+      <b>Juni:</b> Ab heute +10 % pro Woche mit Entlastungswochen; die volle Distanz sollte bis ${datumKurz(r.bisJuni)} (2 Wochen vor dem Wettkampf) im Training stehen.
+      Koppeltrainings (Rad → Lauf) der letzten 8 Wochen: ${r.koppel} – ab dem Frühjahr wichtig, zählt erst dann mit.</div></details>
+  </div>`;
+}
+
 function zeigeFortschritt(){
   $("#leiste").hidden = true;
   const wk = ((zustand.einstellungen.ziele || {}).hauptwettkampf) || {};
@@ -2217,6 +2300,7 @@ function zeigeFortschritt(){
     ${reiter("fortschritt")}
     <h1>Fortschritt</h1>
     ${tage !== null ? `<div class="f-countdown"><b>${tage}</b> Tage bis ${esc(wk.name || "zum Wettkampf")}${phase ? ` · Phase: ${esc(phase)}` : ""}</div>` : ""}
+    ${readinessKarte()}
     <div class="raster">
       <div class="spalte">${laufKarte()}${kraftKarte()}</div>
       <div class="spalte">${wochenKarte()}${gefuehlKarte()}</div>
