@@ -326,6 +326,7 @@ function tagLabel(iso, i){ if(i===0) return "Heute"; if(i===1) return "Morgen"; 
 function lies(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
 function schreib(key, wert){ try{ wert===null ? localStorage.removeItem(key) : localStorage.setItem(key, wert); }catch(e){} }
 const HEUTE = isoDatum(new Date());
+function token(){ return (lies(TOKEN_KEY) || "").replace(/[^\x21-\x7E]/g, ""); }
 // Übungen/Intervalle können als Liste gespeichert sein: dann untereinander anzeigen
 function inhalt(x){
   if(Array.isArray(x)) return `<ul class="punkte">${x.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
@@ -338,11 +339,11 @@ function b64zuText(b64){ const bin=atob(b64.replace(/\n/g,"")); const bytes=Uint
 function textZuB64(text){ const bytes=new TextEncoder().encode(text); let bin=""; for(let i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); return btoa(bin); }
 
 async function gh(pfad, opt={}){
-  const token = lies(TOKEN_KEY);
+  const tk = token();
   const res = await fetch(API + pfad + (opt.method ? "" : "?ref=main&t=" + Date.now()), {
     method: opt.method || "GET",
     cache: "no-store",
-    headers: {"Authorization":"Bearer "+token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"},
+    headers: {"Authorization":"Bearer "+tk, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"},
     body: opt.body ? JSON.stringify(opt.body) : undefined
   });
   return res;
@@ -374,7 +375,7 @@ const zustand = {status:{}, ansicht:"heute", plan:[], bericht:null, uebungen:{},
 
 async function pruefeZugriff(){
   const res = await fetch("https://api.github.com/repos/" + REPO, {cache:"no-store",
-    headers:{"Authorization":"Bearer "+lies(TOKEN_KEY), "Accept":"application/vnd.github+json"}});
+    headers:{"Authorization":"Bearer "+token(), "Accept":"application/vnd.github+json"}});
   if(res.status===401) throw new Error("token");
   if(res.status===403 || res.status===404) throw new Error("zugriff");
   if(!res.ok) throw new Error("GitHub antwortet mit " + res.status);
@@ -416,7 +417,7 @@ function zeigeEinrichtung(fehler){
       <p class="klein-grau" style="margin-top:14px">Auf jedem Gerät, auf dem du die App nutzt, einmal eingeben.</p>
     </div>`;
   $("#token-ok").onclick = async () => {
-    const t = $("#token").value.trim();
+    const t = $("#token").value.replace(/[^\x21-\x7E]/g, "");
     if(!t) return;
     schreib(TOKEN_KEY, t);
     start();
@@ -870,7 +871,7 @@ function zeigeSync(){ const b = $("#sync"); if(b){ b.className = "sync" + (sync.
 function neuZeichnen(){ zustand.ansicht==="kalender" ? zeigeKalender() : zeigeHeute(); }
 async function ghActions(pfad, opt={}){
   return fetch("https://api.github.com/repos/" + REPO + "/actions/" + pfad, {method: opt.method || "GET", cache:"no-store",
-    headers:{"Authorization":"Bearer "+lies(TOKEN_KEY), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"},
+    headers:{"Authorization":"Bearer "+token(), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"},
     body: opt.body ? JSON.stringify(opt.body) : undefined});
 }
 async function holeTrainings(){
@@ -1832,7 +1833,13 @@ async function start(){
     if(err.message==="token"){ schreib(TOKEN_KEY, null); return zeigeEinrichtung("Der Token wurde nicht akzeptiert (abgelaufen oder falsch kopiert). Bitte neu eingeben."); }
     if(err.message==="zugriff"){ schreib(TOKEN_KEY, null); return zeigeEinrichtung("Der Token hat keinen Zugriff auf trainings-daten. Beim Erstellen das Repository auswählen und „Contents: Read and write“ erlauben."); }
     if(err.message==="schreibrecht"){ schreib(TOKEN_KEY, null); return zeigeEinrichtung("Der Token darf nur lesen. Bitte „Contents: Read and write“ erlauben."); }
-    $("#app").innerHTML = `<div class="fehler">${esc(err.message)}</div><button class="knopf" onclick="start()">Nochmal versuchen</button>`;
+    const netz = err instanceof TypeError;
+    $("#app").innerHTML = `<div class="fehler">${netz
+      ? "Keine Verbindung zu GitHub. Prüfe das Internet – oder öffne die App über das Symbol auf deinem Home-Bildschirm. In anderen Browsern (z. B. aus der Mail-App heraus) muss der Token einmal neu eingegeben werden."
+      : esc(err.message)}</div>
+      <button class="knopf" onclick="start()">Nochmal versuchen</button>
+      <button class="knopf hell" id="neu-token" style="margin-left:8px">Token neu eingeben</button>`;
+    $("#neu-token").onclick = () => { schreib(TOKEN_KEY, null); zeigeEinrichtung(); };
   }
 }
 start();
