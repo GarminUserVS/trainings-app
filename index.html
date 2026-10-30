@@ -127,6 +127,13 @@ textarea.text{width:100%;min-height:70px;font:inherit;padding:12px;border-radius
 /* Reiter */
 .reiter{display:inline-flex;background:var(--spur);border-radius:12px;padding:3px;gap:2px;margin:4px 0 6px}
 .reiter button{appearance:none;border:0;background:none;font:inherit;font-size:14px;font-weight:650;color:var(--grau);padding:7px 16px;border-radius:9px;cursor:pointer}
+.reiter-zeile{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sync{appearance:none;border:0;background:none;font:inherit;font-size:13px;color:var(--grau);cursor:pointer;padding:6px 2px;display:inline-flex;align-items:center;gap:6px;text-align:right}
+.sync b{color:var(--tinte);font-weight:650}
+.sync:disabled{cursor:default}
+.sync .dreh{display:inline-block}
+.sync.laeuft .dreh{animation:dreh 1s linear infinite}
+@keyframes dreh{to{transform:rotate(360deg)}}
 .reiter button.an{background:var(--karte);color:var(--tinte);box-shadow:0 1px 2px rgba(0,0,0,.06)}
 /* Kalender */
 .k-nav{display:flex;align-items:center;gap:10px;margin:10px 4px 16px;flex-wrap:wrap}
@@ -363,7 +370,7 @@ async function aendere(pfad, standard, aenderung, nachricht){
 }
 
 // ---------- Zustand ----------
-const zustand = {plan:[], bericht:null, uebungen:{}, kraft:[], checkins:[], aktivitaeten:[], einstellungen:{}, wochen:[]};
+const zustand = {status:{}, ansicht:"heute", plan:[], bericht:null, uebungen:{}, kraft:[], checkins:[], aktivitaeten:[], einstellungen:{}, wochen:[]};
 
 async function pruefeZugriff(){
   const res = await fetch("https://api.github.com/repos/" + REPO, {cache:"no-store",
@@ -377,7 +384,7 @@ async function pruefeZugriff(){
 
 async function ladeAlles(){
   await pruefeZugriff();
-  const [plan, bericht, uebungen, kraft, checkins, aktivitaeten, einstellungen, wochen] = await Promise.all([
+  const [plan, bericht, uebungen, kraft, checkins, aktivitaeten, einstellungen, wochen, status] = await Promise.all([
     ladeJson("daten/plan.json", []),
     ladeJson("daten/berichte/" + HEUTE + ".json", null),
     ladeJson("daten/uebungen.json", {}),
@@ -385,10 +392,13 @@ async function ladeAlles(){
     ladeJson("daten/checkins.json", []),
     ladeJson("daten/aktivitaeten.json", []),
     ladeJson("einstellungen.json", {}),
-    ladeJson("daten/wochen.json", [])
+    ladeJson("daten/wochen.json", []),
+    ladeJson("daten/status.json", {})
   ]);
+
   zustand.plan = plan.daten; zustand.bericht = bericht.daten; zustand.uebungen = uebungen.daten; zustand.kraft = kraft.daten;
   zustand.checkins = checkins.daten; zustand.aktivitaeten = aktivitaeten.daten; zustand.einstellungen = einstellungen.daten; zustand.wochen = wochen.daten;
+  zustand.status = status.daten || {};
 }
 
 // ---------- Ansichten ----------
@@ -831,12 +841,68 @@ window.addEventListener("beforeunload", e => { if(ungespeichert && offen){ e.pre
 
 // ---------- Navigation ----------
 function reiter(aktiv){
-  return `<nav class="reiter">
+  zustand.ansicht = aktiv;
+  return `<div class="reiter-zeile"><nav class="reiter">
     <button data-reiter="heute" class="${aktiv==="heute"?"an":""}">Heute</button>
-    <button data-reiter="kalender" class="${aktiv==="kalender"?"an":""}">Kalender</button></nav>`;
+    <button data-reiter="kalender" class="${aktiv==="kalender"?"an":""}">Kalender</button></nav>
+    <button class="sync ${sync.laeuft?"laeuft":""}" id="sync" ${sync.laeuft?"disabled":""}>${syncText()}</button></div>`;
 }
 function bindeReiter(){
   document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => b.dataset.reiter==="kalender" ? zeigeKalender() : zeigeHeute());
+  if($("#sync")) $("#sync").onclick = holeTrainings;
+}
+
+// ---------- Trainings jetzt von Garmin holen (startet den Abruf auf GitHub) ----------
+const sync = {laeuft:false, text:""};
+function standText(){
+  const s = zustand.status.letzter_abruf;
+  if(!s) return "";
+  const [d, z] = s.split(" ");
+  return d===HEUTE ? "heute " + z : d===plusTage(HEUTE,-1) ? "gestern " + z : d.slice(8,10)+"."+d.slice(5,7)+". " + z;
+}
+function syncText(){
+  if(sync.laeuft) return `<span class="dreh">↻</span> ${esc(sync.text || "Hole Trainings …")}`;
+  if(sync.text) return `${esc(sync.text)} · <b>↻ Nochmal</b>`;
+  const st = standText();
+  return `${st ? "Stand " + esc(st) + " · " : ""}<b>↻ Trainings laden</b>`;
+}
+function zeigeSync(){ const b = $("#sync"); if(b){ b.className = "sync" + (sync.laeuft?" laeuft":""); b.disabled = sync.laeuft; b.innerHTML = syncText(); } }
+function neuZeichnen(){ zustand.ansicht==="kalender" ? zeigeKalender() : zeigeHeute(); }
+async function ghActions(pfad, opt={}){
+  return fetch("https://api.github.com/repos/" + REPO + "/actions/" + pfad, {method: opt.method || "GET", cache:"no-store",
+    headers:{"Authorization":"Bearer "+lies(TOKEN_KEY), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"},
+    body: opt.body ? JSON.stringify(opt.body) : undefined});
+}
+async function holeTrainings(){
+  if(sync.laeuft) return;
+  sync.laeuft = true; sync.text = "Starte Abruf …"; zeigeSync();
+  const gestartet = Date.now() - 60000;
+  try{
+    const res = await ghActions("workflows/abruf.yml/dispatches", {method:"POST", body:{ref:"main"}});
+    if(res.status===403 || res.status===404) throw new Error("rechte");
+    if(!res.ok) throw new Error("GitHub antwortet mit " + res.status);
+    sync.text = "Hole Trainings von Garmin …"; zeigeSync();
+    let fertig = null;
+    for(let i=0; i<40 && !fertig; i++){
+      await new Promise(r => setTimeout(r, i<2 ? 8000 : 5000));
+      const r = await ghActions("workflows/abruf.yml/runs?event=workflow_dispatch&per_page=5");
+      if(!r.ok) continue;
+      const lauf = (await r.json()).workflow_runs.find(l => new Date(l.created_at).getTime() >= gestartet);
+      if(lauf && lauf.status==="completed") fertig = lauf;
+    }
+    if(!fertig) throw new Error("Dauert länger als üblich – schau in ein paar Minuten nochmal.");
+    if(fertig.conclusion!=="success") throw new Error("Abruf hat nicht geklappt – evtl. ist Garmin gerade nicht erreichbar.");
+    const vorher = zustand.aktivitaeten.length;
+    await ladeAlles();
+    const neu = zustand.aktivitaeten.length - vorher;
+    sync.laeuft = false;
+    sync.text = neu > 0 ? `${neu} neue${neu===1?"s":""} Training${neu===1?"":"s"} geladen` : "Aktuell – nichts Neues";
+    neuZeichnen();
+  }catch(err){
+    sync.laeuft = false;
+    sync.text = err.message==="rechte" ? "Token braucht „Actions: Read and write“" : err.message;
+    zeigeSync();
+  }
 }
 
 // ---------- Regeln (aus einstellungen.json, wie im Konzept) ----------
