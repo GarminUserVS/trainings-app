@@ -941,11 +941,11 @@ function reiter(aktiv){
 }
 function bindeReiter(){
   document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => b.dataset.reiter==="kalender" ? zeigeKalender() : zeigeHeute());
-  if($("#sync")) $("#sync").onclick = holeTrainings;
+  if($("#sync")) $("#sync").onclick = () => sync.neu.length ? zeigeNeuesTraining() : holeTrainings();
 }
 
 // ---------- Trainings jetzt von Garmin holen (startet den Abruf auf GitHub) ----------
-const sync = {laeuft:false, text:""};
+const sync = {laeuft:false, text:"", neu:[]};
 function standText(){
   const s = zustand.status.letzter_abruf;
   if(!s) return "";
@@ -954,9 +954,21 @@ function standText(){
 }
 function syncText(){
   if(sync.laeuft) return `<span class="dreh">↻</span> ${esc(sync.text || "Hole Trainings …")}`;
+  if(sync.neu.length) return `<b>${esc(sync.text)} – ansehen ›</b>`;
   if(sync.text) return `${esc(sync.text)} · <b>↻ Nochmal</b>`;
   const st = standText();
   return `${st ? "Stand " + esc(st) + " · " : ""}<b>↻ Trainings laden</b>`;
+}
+// Neuestes geladenes Training im Kalender öffnen (als geplante Einheit, wenn es eine erledigt)
+function zeigeNeuesTraining(){
+  const a = sync.neu[0];
+  sync.neu = []; sync.text = "";
+  if(!a) return zeigeKalender();
+  const e = zustand.plan.find(x => x.status!=="gestrichen" && erledigtDurch(x)===a);
+  auswahl = e ? {typ:"plan", id:e.id} : {typ:"akt", id:a.id};
+  wochenVersatz = Math.round(tageZwischen(montag(HEUTE), montag(a.datum)) / 7);
+  zeigeKalender();
+  const d = document.querySelector(".karte.detail"); if(d) d.scrollIntoView({behavior:"smooth", block:"start"});
 }
 function zeigeSync(){ const b = $("#sync"); if(b){ b.className = "sync" + (sync.laeuft?" laeuft":""); b.disabled = sync.laeuft; b.innerHTML = syncText(); } }
 function ansichtNeu(){ zustand.ansicht==="kalender" ? zeigeKalender() : zeigeHeute(); }
@@ -967,7 +979,7 @@ async function ghActions(pfad, opt={}){
 }
 async function holeTrainings(){
   if(sync.laeuft) return;
-  sync.laeuft = true; sync.text = "Starte Abruf …"; zeigeSync();
+  sync.laeuft = true; sync.neu = []; sync.text = "Starte Abruf …"; zeigeSync();
   const gestartet = Date.now() - 60000;
   try{
     const res = await ghActions("workflows/abruf.yml/dispatches", {method:"POST", body:{ref:"main"}});
@@ -984,9 +996,11 @@ async function holeTrainings(){
     }
     if(!fertig) throw new Error("Dauert länger als üblich – schau in ein paar Minuten nochmal.");
     if(fertig.conclusion!=="success") throw new Error("Abruf hat nicht geklappt – evtl. ist Garmin gerade nicht erreichbar.");
-    const vorher = zustand.aktivitaeten.length;
+    const bekannt = new Set(zustand.aktivitaeten.map(a => String(a.id)));
     await ladeAlles();
-    const neu = zustand.aktivitaeten.length - vorher;
+    sync.neu = zustand.aktivitaeten.filter(a => !bekannt.has(String(a.id)) && a.sport!=="wechsel")
+      .sort((a, b) => (a.start || a.datum) < (b.start || b.datum) ? 1 : -1);
+    const neu = sync.neu.length;
     sync.laeuft = false;
     sync.text = neu > 0 ? `${neu} neue${neu===1?"s":""} Training${neu===1?"":"s"} geladen` : "Aktuell – nichts Neues";
     ansichtNeu();
