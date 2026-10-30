@@ -202,6 +202,7 @@ ul.punkte li{margin:3px 0}
 .notiz-zeile{font-size:13px;color:var(--grau);font-style:italic;margin-top:2px}
 .d-notiz{background:var(--spur);border-radius:10px;padding:9px 12px;font-size:14px;margin-top:10px;white-space:pre-wrap}
 .rest-karte{border:2px solid var(--gelb)}
+.meldung{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinte);color:#fff;padding:11px 18px;border-radius:12px;font-weight:600;font-size:15px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.18);transition:opacity .4s}
 .d-aktionen{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .d-aktionen .knopf{flex:1 1 40%}
 
@@ -913,8 +914,16 @@ async function speichereKraft(){
     ungespeichert = false;
     // Gespeicherte Werte als echte Werte übernehmen, damit die Ansicht stimmt
     offen.werte = startwerte(art, datum);
-    zeigeKraftLog(offen.eintrag.id);
-    setzeStatus("Gespeichert ✓");
+    // Offene „später“-Übungen ohne eingeplanten Rest: hierbleiben, damit der Rest eingeplant werden kann
+    if(restNamen().length && !restEinheit()){
+      zeigeKraftLog(offen.eintrag.id);
+      setzeStatus("Gespeichert ✓ – Rest unten einplanen?");
+      const r = $("#rest-bereich"); if(r) r.scrollIntoView({behavior:"smooth", block:"center"});
+    } else {
+      offen = null;
+      kamVonKalender ? zeigeKalender() : zeigeHeute();
+      meldung("Training gespeichert ✓");
+    }
   }catch(err){
     setzeStatus(err.message==="token" ? "Token ungültig – bitte neu einrichten." : err.message);
   }finally{ knopf.disabled = false; }
@@ -1305,6 +1314,10 @@ function sheet(html){
   document.body.appendChild(el);
   el.querySelector(".sheet-hg").onclick = schliesseSheet;
   return el.querySelector(".sheet");
+}
+function meldung(text){
+  const m = document.createElement("div"); m.className = "meldung"; m.textContent = text; document.body.appendChild(m);
+  setTimeout(() => { m.style.opacity = "0"; setTimeout(() => m.remove(), 450); }, 2200);
 }
 function schliesseSheet(){ const s = document.getElementById("sheet"); if(s) s.remove(); }
 
