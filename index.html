@@ -1825,7 +1825,9 @@ async function start(){
   $("#app").innerHTML = `<div class="karte leer">Lade …</div>`;
   try{
     await ladeAlles();
-    zeigeHeute();
+    // Link aus der Morgenmail (…/#checkin) öffnet direkt den Check-in
+    if(location.hash==="#checkin"){ history.replaceState(null, "", location.pathname); zeigeHeute(); zeigeCheckin(); }
+    else zeigeHeute();
   }catch(err){
     if(err.message==="token"){ schreib(TOKEN_KEY, null); return zeigeEinrichtung("Der Token wurde nicht akzeptiert (abgelaufen oder falsch kopiert). Bitte neu eingeben."); }
     if(err.message==="zugriff"){ schreib(TOKEN_KEY, null); return zeigeEinrichtung("Der Token hat keinen Zugriff auf trainings-daten. Beim Erstellen das Repository auswählen und „Contents: Read and write“ erlauben."); }
