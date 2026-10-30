@@ -202,6 +202,55 @@ ul.punkte li{margin:3px 0}
 .notiz-zeile{font-size:13px;color:var(--grau);font-style:italic;margin-top:2px}
 .d-notiz{background:var(--spur);border-radius:10px;padding:9px 12px;font-size:14px;margin-top:10px;white-space:pre-wrap}
 .rest-karte{border:2px solid var(--gelb)}
+/* Fortschritt */
+.f-countdown{font-size:15px;color:var(--grau);margin:-4px 0 14px}
+.f-countdown b{color:var(--tinte);font-size:22px;font-weight:750;margin-right:2px}
+.f-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.f-titel{font-size:19px;font-weight:700;margin-top:2px}
+.f-fortschritt{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:14px;white-space:nowrap}
+.f-fortschritt .spur{flex:1;margin:0}
+.f-fortschritt .spur>div{height:100%;border-radius:8px}
+.f-unter{font-size:13px;font-weight:650;color:var(--grau);margin:18px 0 8px}
+.f-zeile{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--linie);font-size:14px}
+.f-zeile b{text-align:right}
+.f-meilenstein{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--linie);font-size:14px}
+.f-punkt{width:12px;height:12px;border-radius:50%;border:2px solid #8B5CF6}
+.f-punkt.ok{background:#8B5CF6}
+.f-punkt.spaet{border-color:var(--rot)}
+.f-prognose{text-align:right;font-size:12px;color:var(--grau);line-height:1.3}
+.f-prognose b{font-size:14px;color:var(--tinte)}
+.f-kacheln{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.f-kacheln div{background:var(--feld);border-radius:12px;padding:12px}
+.f-kacheln b{display:block;font-size:22px;font-weight:750}
+.f-kacheln span{font-size:12px;color:var(--grau)}
+.f-kraft{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--linie);font-size:14px}
+.f-kraft-wert{text-align:right}
+.f-kraft-wert b{display:block}
+.f-kraft-wert span{font-size:12px;color:var(--grau)}
+.f-kraft-wert span.plus{color:var(--gruen);font-weight:650}
+.f-infekt{background:var(--feld);border-radius:12px;padding:12px;font-size:14px;margin-bottom:6px}
+.f-tabelle{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.f-tabelle th,.f-tabelle td{text-align:right;padding:5px 4px;border-top:1px solid var(--linie)}
+.f-tabelle th:first-child,.f-tabelle td:first-child{text-align:left}
+.c-chart{margin-top:4px}
+.c-flaeche{position:relative;display:flex;gap:3px;height:calc(var(--h) + 30px);align-items:stretch}
+.c-unten{height:30px;display:flex;flex-direction:column;align-items:center}
+.c-spalte{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;cursor:pointer;outline:none;border-radius:6px}
+.c-saeule{height:var(--h);width:100%;max-width:26px;display:flex;flex-direction:column-reverse;gap:2px;border-bottom:1px solid #D9D4CB}
+.c-seg{width:100%;flex:none}
+.c-seg:last-child{border-radius:4px 4px 0 0}
+.c-spalte.aktiv .c-saeule,.c-spalte:hover .c-saeule{filter:brightness(.92)}
+.c-spalte.aktiv{background:var(--feld)}
+.c-marke{width:7px;height:7px;border-radius:50%;background:var(--rot);margin-top:4px;flex:none}
+.c-marke.leer{background:none}
+.c-label{font-size:10px;color:var(--grau);margin-top:3px;white-space:nowrap}
+.c-spalte:nth-child(even) .c-label{visibility:hidden}
+.c-ziel{position:absolute;left:0;right:0;border-top:2px dashed #8B5CF6;pointer-events:none}
+.c-ziel span{position:absolute;right:0;top:-20px;font-size:11px;font-weight:650;background:var(--karte);padding:0 4px;color:var(--tinte)}
+.c-legende{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--grau);margin-top:10px}
+.c-legende i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.c-legende i.c-marke-l{background:var(--rot);border-radius:50%;width:7px;height:7px}
+.c-tip{position:absolute;z-index:40;background:var(--tinte);color:#fff;font-size:13px;line-height:1.45;padding:8px 11px;border-radius:10px;pointer-events:none;max-width:240px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 .meldung{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinte);color:#fff;padding:11px 18px;border-radius:12px;font-weight:600;font-size:15px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.18);transition:opacity .4s}
 .d-aktionen{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .d-aktionen .knopf{flex:1 1 40%}
@@ -936,11 +985,12 @@ function reiter(aktiv){
   zustand.ansicht = aktiv;
   return `<div class="reiter-zeile"><nav class="reiter">
     <button data-reiter="heute" class="${aktiv==="heute"?"an":""}">Heute</button>
-    <button data-reiter="kalender" class="${aktiv==="kalender"?"an":""}">Kalender</button></nav>
+    <button data-reiter="kalender" class="${aktiv==="kalender"?"an":""}">Kalender</button>
+    <button data-reiter="fortschritt" class="${aktiv==="fortschritt"?"an":""}">Fortschritt</button></nav>
     <button class="sync ${sync.laeuft?"laeuft":""}" id="sync" ${sync.laeuft?"disabled":""}>${syncText()}</button></div>`;
 }
 function bindeReiter(){
-  document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => b.dataset.reiter==="kalender" ? zeigeKalender() : zeigeHeute());
+  document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => ({kalender:zeigeKalender, fortschritt:zeigeFortschritt}[b.dataset.reiter] || zeigeHeute)());
   if($("#sync")) $("#sync").onclick = () => sync.neu.length ? zeigeNeuesTraining() : holeTrainings();
 }
 
@@ -971,7 +1021,7 @@ function zeigeNeuesTraining(){
   const d = document.querySelector(".karte.detail"); if(d) d.scrollIntoView({behavior:"smooth", block:"start"});
 }
 function zeigeSync(){ const b = $("#sync"); if(b){ b.className = "sync" + (sync.laeuft?" laeuft":""); b.disabled = sync.laeuft; b.innerHTML = syncText(); } }
-function ansichtNeu(){ zustand.ansicht==="kalender" ? zeigeKalender() : zeigeHeute(); }
+function ansichtNeu(){ ({kalender:zeigeKalender, fortschritt:zeigeFortschritt}[zustand.ansicht] || zeigeHeute)(); }
 async function ghActions(pfad, opt={}){
   return fetch("https://api.github.com/repos/" + REPO + "/actions/" + pfad, {method: opt.method || "GET", cache:"no-store",
     headers:{"Authorization":"Bearer "+token(), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"},
@@ -1950,6 +2000,230 @@ async function speichereWoche(){
 }
 
 // ---------- Start ----------
+// ---------- Fortschritt: was Garmin nicht weiß (Plan, Meilensteine, Knie, Kraft, Gefühl, Infekte) ----------
+const CHART = {laufen:"#8B5CF6", rad:"#E07B1A", schwimmen:"#2F8FD8", kraft:"#1E9A8F"};
+const CHART_NAMEN = {schwimmen:"Schwimmen", rad:"Rad", laufen:"Laufen", kraft:"Kraft & Mobility"};
+const chartSport = sp => ["laufen","rad","schwimmen"].includes(sp) ? sp : "kraft";
+const fmtZahl = (x, n=1) => (Math.round(x * 10**n) / 10**n).toLocaleString("de-DE");
+const tagMonat = iso => iso.slice(8,10) + "." + iso.slice(5,7) + ".";
+const istInfekt = c => c.infekt && c.infekt!=="nein";
+
+function laufTempo(){
+  // Ø-Tempo der letzten 5 Läufe mit Distanz (min/km); sonst Annahme 7,6
+  const l = zustand.aktivitaeten.filter(a => a.sport==="laufen" && a.distanz_km > 0.5 && a.dauer_min > 5).slice(-5);
+  if(!l.length) return 7.6;
+  return l.reduce((s, a) => s + a.dauer_min, 0) / l.reduce((s, a) => s + a.distanz_km, 0);
+}
+function tempoText(t){ const m = Math.floor(t), s = Math.round((t - m) * 60); return m + ":" + String(s).padStart(2, "0") + " min/km"; }
+
+// Wochen bis zum Ziel mit +10 % pro Woche und jeder 4. Woche Entlastung
+function wochenBis(start, ziel){
+  const r = regeln().steigerung || {};
+  const f = 1 + (r.locker_max_prozent_pro_woche || 10) / 100;
+  const entl = r.entlastung_spaetestens_nach_wochen || 4;
+  if(start >= ziel) return 0;
+  const n = Math.ceil(Math.log(ziel / start) / Math.log(f));
+  return n + Math.floor(n / (entl - 1));
+}
+
+function laufaufbau(){
+  const tempo = laufTempo();
+  const laeufe = zustand.aktivitaeten.filter(a => a.sport==="laufen");
+  const ab14 = plusTage(HEUTE, -13);
+  const letzte14 = laeufe.filter(a => a.datum >= ab14);
+  const laengster = letzte14.length ? Math.max(...letzte14.map(a => a.dauer_min)) : 0;
+  const letzter = laeufe[laeufe.length - 1];
+  const basis = laengster || (letzter ? letzter.dauer_min : 15);
+  const ziele = ((zustand.einstellungen.ziele || {}).halbmarathon_meilensteine || []).map(m => ({
+    ...m, ziel_min: m.laengster_lauf_min || Math.round((m.laengster_lauf_km || 0) * tempo)
+  }));
+  // Prognose als Kette: jeder Meilenstein startet dort, wo der vorige erreicht ist
+  let stand = basis, ab = montag(HEUTE);
+  for(const m of ziele){
+    if(stand >= m.ziel_min){ m.erreicht = true; m.prognose = null; continue; }
+    const w = wochenBis(stand, m.ziel_min);
+    m.prognose = plusTage(ab, 7 * w);
+    m.puffer = Math.round(tageZwischen(m.prognose, m.bis) / 7);
+    stand = m.ziel_min; ab = m.prognose;
+  }
+  // Längster Lauf pro Woche, letzte 16 Wochen
+  const wochen = [...Array(16)].map((_, i) => plusTage(montag(HEUTE), -7 * (15 - i)));
+  const proWoche = wochen.map(w => {
+    const l = laeufe.filter(a => montag(a.datum)===w);
+    return {woche:w, min: l.length ? Math.max(...l.map(a => a.dauer_min)) : 0, anzahl:l.length};
+  });
+  // Knie aus dem Check-in, letzte 14 Tage
+  const knie = zustand.checkins.filter(c => c.datum >= ab14 && typeof c.knie==="number");
+  return {tempo, laengster, letzter, basis, ziele, proWoche, knie};
+}
+
+// Säulendiagramm aus HTML (gestapelt), mit optionaler Ziellinie
+function saeulen(spalten, {hoehe=150, ziel=null, einheit=""}={}){
+  const max = Math.max(1, ziel ? ziel.wert * 1.1 : 0, ...spalten.map(s => s.segs.reduce((a, x) => a + x.wert, 0)));
+  const linie = ziel ? `<div class="c-ziel" style="bottom:calc(30px + var(--h) * ${ziel.wert / max})"><span>${esc(ziel.label)}</span></div>` : "";
+  const cols = spalten.map(s => {
+    const segs = s.segs.filter(x => x.wert > 0).map(x =>
+      `<div class="c-seg" style="height:${x.wert / max * 100}%;background:${x.farbe}"></div>`).join("");
+    return `<div class="c-spalte" tabindex="0" data-tip="${esc(s.tip)}">
+      <div class="c-saeule">${segs}</div><div class="c-unten">${s.marke ? `<span class="c-marke"></span>` : `<span class="c-marke leer"></span>`}
+      <div class="c-label">${esc(s.label)}</div></div></div>`;
+  }).join("");
+  return `<div class="c-chart" style="--h:${hoehe}px"><div class="c-flaeche">${linie}${cols}</div></div>`;
+}
+function bindeTips(){
+  const tip = $("#c-tip");
+  document.querySelectorAll(".c-spalte").forEach(el => {
+    const zeige = () => {
+      document.querySelectorAll(".c-spalte.aktiv").forEach(x => x.classList.remove("aktiv"));
+      el.classList.add("aktiv");
+      tip.innerHTML = esc(el.dataset.tip).replace(/\n/g, "<br>"); tip.hidden = false;
+      const r = el.getBoundingClientRect(), t = tip.getBoundingClientRect();
+      const x = Math.min(window.innerWidth - t.width - 8, Math.max(8, r.left + r.width / 2 - t.width / 2));
+      tip.style.left = x + "px"; tip.style.top = (r.top + window.scrollY - t.height - 8) + "px";
+    };
+    el.onpointerenter = zeige; el.onclick = zeige; el.onfocus = zeige;
+    el.onpointerleave = () => { el.classList.remove("aktiv"); tip.hidden = true; };
+  });
+}
+
+function laufKarte(){
+  const l = laufaufbau();
+  const naechster = l.ziele.find(m => !m.erreicht);
+  let kopf = "";
+  if(naechster){
+    const anteil = Math.min(1, l.basis / naechster.ziel_min);
+    const status = naechster.puffer >= 1 ? ["p-gruen", `im Plan · ${naechster.puffer} Wo. Puffer`]
+      : naechster.puffer >= 0 ? ["p-gelb", "knapp im Plan"] : ["p-gelb", `≈ ${-naechster.puffer} Wo. nach Ziel`];
+    kopf = `<div class="f-hero"><div><div class="klein-grau">Nächster Meilenstein · bis ${tagMonat(naechster.bis)}</div>
+        <div class="f-titel">${esc(naechster.name)}</div></div><span class="pille ${status[0]}">${esc(status[1])}</span></div>
+      <div class="f-fortschritt"><div class="spur"><div style="width:${anteil * 100}%;background:${CHART.laufen}"></div></div>
+        <span><b>${Math.round(l.basis)}</b> / ${naechster.ziel_min} min</span></div>
+      <p class="klein-grau" style="margin:6px 0 0">${l.laengster ? `Längster Lauf der letzten 14 Tage: ${Math.round(l.laengster)} min.`
+        : `Kein Lauf in den letzten 14 Tagen – gerechnet ab deinem letzten Lauf (${Math.round(l.basis)} min).`}</p>`;
+  }
+  const kette = l.ziele.map(m => `<div class="f-meilenstein">
+      <span class="f-punkt ${m.erreicht ? "ok" : m.puffer < 0 ? "spaet" : ""}"></span>
+      <div><b>${esc(m.name)}</b><div class="klein-grau">Ziel ${tagMonat(m.bis)}${m.laengster_lauf_km ? ` · ≈ ${m.ziel_min} min bei deinem Tempo` : ""}</div></div>
+      <div class="f-prognose">${m.erreicht ? "✓ erreicht" : `Prognose<br><b>${tagMonat(m.prognose)}</b>`}</div></div>`).join("");
+  const ziel = naechster ? {wert:naechster.ziel_min, label: naechster.ziel_min + " min"} : null;
+  const chart = saeulen(l.proWoche.map(w => ({label: tagMonat(w.woche).slice(0, 6), segs:[{wert:w.min, farbe:CHART.laufen}],
+    tip: `Woche ab ${tagMonat(w.woche)}\n${w.anzahl ? `Längster Lauf: ${Math.round(w.min)} min · ${w.anzahl} Lauf/Läufe` : "Kein Lauf"}`})),
+    {ziel, hoehe:130});
+  const k = l.knie;
+  const knie = k.length ? (() => {
+    const max = Math.max(...k.map(c => c.knie)), avg = k.reduce((s, c) => s + c.knie, 0) / k.length;
+    const grenze = regeln().knie_schmerz_max || 3;
+    return `<div class="f-zeile"><span>Knie im Check-in (14 Tage)</span><b class="${max > grenze ? "warn-text" : ""}">Ø ${fmtZahl(avg)} · max ${max}/10</b></div>`;
+  })() : `<div class="f-zeile"><span>Knie im Check-in</span><span class="klein-grau">noch keine Werte</span></div>`;
+  return `<div class="karte"><span class="augenbraue">Laufaufbau</span>${kopf}
+    <div class="f-unter">Längster Lauf pro Woche</div>${chart}
+    ${knie}
+    <div class="f-zeile"><span>Dein Lauftempo (letzte Läufe)</span><b>${tempoText(l.tempo)}</b></div>
+    <div class="f-unter">Meilensteine & Prognose</div>${kette}
+    <p class="klein-grau" style="margin:10px 0 0">Prognose: +10 % pro Woche, jede 4. Woche Entlastung – so wie in deinem Regelwerk.${
+      l.ziele.some(m => m.puffer < 0) ? " Liegt eine Prognose hinter dem Ziel, lieber den Meilenstein verschieben als schneller steigern – das Knie geht vor." : ""}</p></div>`;
+}
+
+function wochenKarte(){
+  const wochen = [...Array(12)].map((_, i) => plusTage(montag(HEUTE), -7 * (11 - i)));
+  const daten = wochen.map(w => {
+    const ende = plusTage(w, 6);
+    const akt = zustand.aktivitaeten.filter(a => a.sport!=="wechsel" && a.datum >= w && a.datum <= ende);
+    const h = {schwimmen:0, rad:0, laufen:0, kraft:0};
+    akt.forEach(a => h[chartSport(a.sport)] += (a.dauer_min || 0) / 60);
+    const geplant = zustand.plan.filter(e => e.datum >= w && e.datum <= ende && e.datum <= HEUTE && e.status!=="gestrichen" && !e.rest_von);
+    const gestrichen = zustand.plan.filter(e => e.datum >= w && e.datum <= ende && e.status==="gestrichen").length;
+    const erledigt = geplant.filter(e => erledigtDurch(e)).length;
+    const infekt = zustand.checkins.filter(c => c.datum >= w && c.datum <= ende && istInfekt(c)).length;
+    return {w, h, summe: Object.values(h).reduce((a, b) => a + b, 0), geplant: geplant.length + gestrichen, erledigt, infekt};
+  });
+  const chart = saeulen(daten.map(d => ({label: tagMonat(d.w).slice(0, 6),
+    segs: ["schwimmen","rad","laufen","kraft"].map(sp => ({wert:d.h[sp], farbe:CHART[sp]})),
+    marke: d.infekt ? `Infekt an ${d.infekt} Tag(en)` : "",
+    tip: `Woche ab ${tagMonat(d.w)} · ${fmtZahl(d.summe)} h\n` + ["schwimmen","rad","laufen","kraft"].filter(sp => d.h[sp] > 0)
+      .map(sp => `${CHART_NAMEN[sp]}: ${fmtZahl(d.h[sp])} h`).join("\n")
+      + (d.geplant ? `\nPlan: ${d.erledigt} von ${d.geplant} erledigt` : "") + (d.infekt ? `\nInfekt an ${d.infekt} Tag(en)` : "")})), {hoehe:150});
+  const legende = `<div class="c-legende">${["schwimmen","rad","laufen","kraft"].map(sp =>
+    `<span><i style="background:${CHART[sp]}"></i>${CHART_NAMEN[sp]}</span>`).join("")}<span><i class="c-marke-l"></i>Infekt (Check-in)</span></div>`;
+  const letzte4 = daten.slice(-5, -1);
+  const schnitt = letzte4.reduce((s, d) => s + d.summe, 0) / 4;
+  const mitPlan = daten.filter(d => d.geplant);
+  const quote = mitPlan.length ? Math.round(100 * mitPlan.reduce((s, d) => s + d.erledigt, 0) / mitPlan.reduce((s, d) => s + d.geplant, 0)) : null;
+  const tabelle = `<details class="d-mehr"><summary>Als Tabelle</summary><table class="f-tabelle"><tr><th>Woche</th><th>Schw.</th><th>Rad</th><th>Lauf</th><th>Kraft</th><th>Plan</th></tr>${
+    daten.slice().reverse().map(d => `<tr><td>${tagMonat(d.w)}</td>${["schwimmen","rad","laufen","kraft"].map(sp => `<td>${d.h[sp] ? fmtZahl(d.h[sp]) : "–"}</td>`).join("")}
+      <td>${d.geplant ? d.erledigt + "/" + d.geplant : "–"}</td></tr>`).join("")}</table></details>`;
+  return `<div class="karte"><span class="augenbraue">Trainingswochen</span>
+    <div class="f-kacheln"><div><b>${fmtZahl(schnitt)} h</b><span>Ø pro Woche (letzte 4 abgeschl.)</span></div>
+      <div><b>${quote===null ? "–" : quote + " %"}</b><span>${quote===null ? "Plan-Quote ab der ersten geplanten Woche" : "vom Plan erledigt"}</span></div></div>
+    ${chart}${legende}${tabelle}</div>`;
+}
+
+function kraftKarte(){
+  const logs = zustand.kraft.slice().sort((a, b) => a.datum < b.datum ? -1 : 1);
+  if(!logs.length) return `<div class="karte"><span class="augenbraue">Kraft</span><p class="klein-grau" style="margin:0">Sobald du Training im Kraft-Log einträgst, siehst du hier deine Entwicklung.</p></div>`;
+  const zeilen = [];
+  for(const art of ["kraft_tag_a","kraft_tag_b"]){
+    const def = zustand.uebungen[art]; if(!def) continue;
+    for(const u of def.uebungen.filter(u => u.erfassung==="saetze")){
+      const verlauf = logs.filter(k => k.einheit===art && k.uebungen[u.id] && k.uebungen[u.id].saetze)
+        .map(k => ({datum:k.datum, top: k.uebungen[u.id].saetze.reduce((b, s) => (s.kg||0) > (b.kg||0) || ((s.kg||0)===(b.kg||0) && s.wdh > b.wdh) ? s : b)}));
+      if(!verlauf.length) continue;
+      const erst = verlauf[0].top, jetzt = verlauf[verlauf.length - 1].top;
+      const diff = (jetzt.kg || 0) - (erst.kg || 0);
+      const zielSatz = u.ziel ? u.ziel.reduce((b, s) => s.kg > b.kg ? s : b) : null;
+      const zielText = zielSatz ? (jetzt.kg >= zielSatz.kg && jetzt.wdh >= zielSatz.wdh ? "Ziel erreicht ✓" : `Ziel ${zielSatz.wdh}×${zielSatz.kg} kg`) : "";
+      zeilen.push(`<div class="f-kraft"><div><b>${esc(u.name)}</b><div class="klein-grau">${verlauf.length} Einheit${verlauf.length===1?"":"en"}${zielText ? " · " + zielText : ""}</div></div>
+        <div class="f-kraft-wert"><b>${jetzt.wdh}${jetzt.kg ? "×" + fmtZahl(jetzt.kg) + " kg" : ""}</b>
+        <span class="${diff > 0 ? "plus" : ""}">${verlauf.length < 2 ? "Startwert" : diff > 0 ? "+" + fmtZahl(diff) + " kg" : diff < 0 ? fmtZahl(diff) + " kg" : "gleich"}</span></div></div>`);
+    }
+  }
+  return `<div class="karte"><span class="augenbraue">Kraft · bester Satz</span>${zeilen.join("") || `<p class="klein-grau">Noch keine Sätze eingetragen.</p>`}
+    <p class="klein-grau" style="margin:10px 0 0">Vergleich: bester Satz der letzten Einheit gegenüber der ersten erfassten.</p></div>`;
+}
+
+function gefuehlKarte(){
+  const c = zustand.checkins.slice().sort((a, b) => a.datum < b.datum ? -1 : 1);
+  const mitBeidem = c.filter(x => x.farbe_final && x.farbe_garmin);
+  const rang = {rot:0, gelb:1, gruen:2};
+  const runter = mitBeidem.filter(x => rang[x.farbe_final] < rang[x.farbe_garmin]).length;
+  const hoch = mitBeidem.filter(x => rang[x.farbe_final] > rang[x.farbe_garmin]).length;
+  const infekte = c.filter(istInfekt);
+  const letzter = infekte.length ? infekte[infekte.length - 1].datum : null;
+  const r = regeln().steigerung || {};
+  const noetig = r.hart_steigern_nach_wochen_ohne_infekt || 3;
+  let infektText;
+  if(letzter){
+    const frei = Math.floor(tageZwischen(letzter, HEUTE) / 7);
+    const ab = plusTage(letzter, 7 * noetig + 1);
+    infektText = frei >= noetig ? `<b>${frei} Wochen infektfrei</b> – harte Einheiten dürfen wieder gesteigert werden.`
+      : `Letzter Infekt am ${tagMonat(letzter)} Harte Einheiten frühestens ab <b>${datumKurz(ab)}</b> steigern (nach ${noetig} infektfreien Wochen) – bis dahin halten.`;
+  } else infektText = c.length ? "Kein Infekt im Check-in vermerkt." : "Noch keine Check-ins.";
+  const tage8 = c.filter(x => x.datum >= plusTage(HEUTE, -55) && istInfekt(x)).length;
+  return `<div class="karte"><span class="augenbraue">Gefühl & Infekte</span>
+    <div class="f-infekt">${infektText}</div>
+    <div class="f-zeile"><span>Infekt-Tage (letzte 8 Wochen)</span><b>${tage8}</b></div>
+    <div class="f-zeile"><span>Check-ins gesamt</span><b>${c.length}</b></div>
+    <div class="f-zeile"><span>Gefühl stimmte mit Garmin-Ampel überein</span><b>${mitBeidem.length ? (mitBeidem.length - runter - hoch) + " von " + mitBeidem.length : "–"}</b></div>
+    ${runter || hoch ? `<div class="f-zeile"><span>Gefühl hat die Ampel geändert</span><b>${runter}× runter · ${hoch}× hoch</b></div>` : ""}
+    ${c.length < 10 ? `<p class="klein-grau" style="margin:10px 0 0">Wird mit jedem Check-in aussagekräftiger – ab ca. 2–3 Wochen zeigen sich Muster, z. B. ob dein Gefühl früher als Garmin merkt, dass ein Infekt kommt.</p>` : ""}</div>`;
+}
+
+function zeigeFortschritt(){
+  $("#leiste").hidden = true;
+  const wk = ((zustand.einstellungen.ziele || {}).hauptwettkampf) || {};
+  const tage = wk.datum ? tageZwischen(HEUTE, wk.datum) : null;
+  const phase = (zustand.wochen.slice().sort((a, b) => a.start < b.start ? -1 : 1).pop() || {}).phase;
+  $("#app").innerHTML = `
+    ${reiter("fortschritt")}
+    <h1>Fortschritt</h1>
+    ${tage !== null ? `<div class="f-countdown"><b>${tage}</b> Tage bis ${esc(wk.name || "zum Wettkampf")}${phase ? ` · Phase: ${esc(phase)}` : ""}</div>` : ""}
+    <div class="raster">
+      <div class="spalte">${laufKarte()}${kraftKarte()}</div>
+      <div class="spalte">${wochenKarte()}${gefuehlKarte()}</div>
+    </div><div class="c-tip" id="c-tip" hidden></div>`;
+  bindeReiter(); bindeTips();
+}
+
 async function start(){
   if(!lies(TOKEN_KEY)) return zeigeEinrichtung();
   $("#app").innerHTML = `<div class="karte leer">Lade …</div>`;
