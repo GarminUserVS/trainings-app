@@ -1145,9 +1145,18 @@ let wochenVersatz = 0;
 let auswahl = null;  // {typ:"plan"|"akt", id}
 function montag(iso){ const d = new Date(iso+"T12:00:00"); d.setDate(d.getDate() - (d.getDay()+6)%7); return isoDatum(d); }
 function datumKurz(iso){ const d = new Date(iso+"T12:00:00"); return WOCHENTAGE[d.getDay()] + " " + iso.slice(8,10) + "." + iso.slice(5,7) + "."; }
+const AEHNLICH = {mobilitaet:["kraft","sonstiges"], kraft:["mobilitaet"], sonstiges:["mobilitaet","kraft"]};
 function erledigtDurch(e){
   if(e.datum > HEUTE) return null;
-  return zustand.aktivitaeten.find(a => a.datum===e.datum && a.sport===e.sport) || null;
+  const akt = zustand.aktivitaeten.filter(a => a.datum===e.datum && a.sport!=="wechsel");
+  const exakt = akt.find(a => a.sport===e.sport);
+  if(exakt) return exakt;
+  // Ähnliche Sportart zählt auch (z. B. Mobility-Einheit, auf der Uhr als Krafttraining gestartet),
+  // aber nur, wenn das Training nicht schon eine andere Einheit des Tages erledigt
+  const passt = AEHNLICH[e.sport] || [];
+  const belegt = new Set(zustand.plan.filter(x => x.id!==e.id && x.datum===e.datum && x.status!=="gestrichen")
+    .map(x => akt.find(a => a.sport===x.sport)).filter(Boolean));
+  return akt.find(a => passt.includes(a.sport) && !belegt.has(a)) || null;
 }
 
 function zeigeKalender(){
