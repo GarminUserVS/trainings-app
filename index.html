@@ -1017,6 +1017,15 @@ function syncText(){
   const st = standText();
   return `${st ? "Stand " + esc(st) + " · " : ""}<b>↻ Trainings laden</b>`;
 }
+// Morgens ohne verschickten Bericht: Morgenlauf einmal pro Tag und Gerät anstoßen (GitHub-Zeitplan ist unzuverlässig)
+async function morgenAnstossen(){
+  const st = zustand.status || {}, h = new Date().getHours();
+  if(h < 5 || h >= 12 || (st.datum===HEUTE && st.bericht_gesendet) || lies("morgen_angestossen")===HEUTE) return;
+  try{
+    const res = await ghActions("workflows/abruf.yml/dispatches", {method:"POST", body:{ref:"main", inputs:{morgen:"true"}}});
+    if(res.ok){ schreib("morgen_angestossen", HEUTE); meldung("Morgenbericht wird geholt – Mail kommt, sobald dein Schlaf da ist"); }
+  }catch(e){}
+}
 // Neuestes geladenes Training im Kalender öffnen (als geplante Einheit, wenn es eine erledigt)
 function zeigeNeuesTraining(){
   const a = sync.neu[0];
@@ -2314,6 +2323,7 @@ async function start(){
   try{
     await ladeAlles();
     // Link aus der Morgenmail (…/#checkin) öffnet direkt den Check-in
+    morgenAnstossen();
     if(location.hash==="#checkin"){ history.replaceState(null, "", location.pathname); zeigeHeute(); zeigeCheckin(); }
     else zeigeHeute();
   }catch(err){
