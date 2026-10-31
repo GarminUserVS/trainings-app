@@ -511,8 +511,11 @@ function tagesAmpel(){
     if(t.farbe===null || RANG[farbe] < RANG[t.farbe]) t.farbe = farbe;
   };
   if(c.infekt==="unter") deckel("rot", "Infektgefühl unterhalb des Halses bzw. Fieber");
-  if(c.infekt==="ober"){ deckel("gelb", "Infektgefühl oberhalb des Halses"); t.hinweise.push("Nur Zone 1–2, keine Intervalle."); }
-  if(c.energie!==null && c.energie<=2) deckel("gelb", "Energie niedrig (" + c.energie + "/5)");
+  const wenigEnergie = c.energie!==null && c.energie!==undefined && c.energie<=2;
+  if(c.infekt==="ober" && wenigEnergie) deckel("rot", "Infektgefühl und kaum Energie (" + c.energie + "/5)");
+  else if(c.infekt==="ober"){ deckel("gelb", "Infektgefühl oberhalb des Halses"); t.hinweise.push("Nur Zone 1–2, keine Intervalle."); }
+  if(c.energie===1) deckel("rot", "Energie sehr niedrig (1/5)");
+  else if(wenigEnergie && c.infekt!=="ober") deckel("gelb", "Energie niedrig (" + c.energie + "/5)");
   if((c.knie ?? 0) > 3 || (c.huefte ?? 0) > 3){
     t.laufsperre = true;
     t.hinweise.push("Knie oder Hüfte über 3/10: kein Lauf heute – locker Rad oder Schwimmen als Ersatz.");
@@ -552,7 +555,8 @@ function ampelKarte(t){
     : `<span class="score" style="font-size:32px;line-height:40px">Check-in</span>`;
   const anpassung = (t.gruende.length || t.hinweise.length)
     ? `<ul class="anpassung" style="padding-left:18px;margin-bottom:0">${
-        (angepasst ? [`Angepasst von ${AMPEL[t.garmin].wort} auf ${a.wort}: ${t.gruende.join(", ")}.`] : [])
+        (angepasst ? [`Durch deinen Check-in von ${AMPEL[t.garmin].wort} auf ${a.wort} gesenkt: ${t.gruende.join(", ")}.`]
+          : t.gruende.length ? [`Dein Check-in bestätigt ${a.wort}: ${t.gruende.join(", ")}.`] : [])
         .concat(t.hinweise).map(h => `<li>${esc(h)}</li>`).join("")}</ul>` : "";
   return `<div class="karte">
     <span class="augenbraue">Bereitschaft heute</span>
@@ -608,6 +612,7 @@ function heuteFuer(e, t){
   if(t.farbe==="rot" && hart) return {label:"Vorschlag:", text:"Verschieben oder als lockere Einheit in Zone 1–2 machen.", farbe:"rot"};
   if(t.farbe==="rot" && ["laufen","rad","schwimmen"].includes(e.sport)) return {label:"Vorschlag:", text:"Wenn überhaupt: kurz und sehr locker.", farbe:"rot"};
   if(t.farbe==="gelb" && hart) return {label:"Vorschlag:", text:"Kürzen oder Intensität rausnehmen, z. B. eine Wiederholung weniger.", farbe:"gelb"};
+  if(t.farbe==="rot") return {label:"Heute lieber Ruhe:", text:"Nur wenn es dir guttut: ein paar Minuten sanfte Mobility oder ein Spaziergang. Sonst einfach weglassen.", farbe:"rot"};
   if(t.wenigZeit) return {label:"Wenig Zeit:", text:"Kernteil machen, Ein- und Auslaufen bzw. Zusatzübungen kürzen.", farbe:"gelb"};
   return null;
 }
