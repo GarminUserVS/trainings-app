@@ -233,6 +233,18 @@ ul.punkte li{margin:3px 0}
 .f-tabelle th,.f-tabelle td{text-align:right;padding:5px 4px;border-top:1px solid var(--linie)}
 .f-tabelle th:first-child,.f-tabelle td:first-child{text-align:left}
 .c-chart{margin-top:4px}
+.einordnung{background:var(--feld);border-radius:14px;padding:14px 16px;margin-top:14px}
+.e-kopf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.e-liste{list-style:none;margin:10px 0 0;padding:0;font-size:14px}
+.e-liste li{display:flex;gap:9px;padding:5px 0;align-items:baseline}
+.e-liste li span{flex:none;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:800;transform:translateY(3px)}
+.e-liste li.plus span{background:var(--gruen-t);color:var(--gruen)}
+.e-liste li.minus span{background:var(--rot-t);color:var(--rot)}
+.e-liste li.info span{background:var(--spur);color:var(--grau)}
+.e-tabelle{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.e-tabelle th{font-weight:600;color:var(--grau);text-align:right;padding:4px}
+.e-tabelle td{text-align:right;padding:5px 4px;border-top:1px solid var(--linie)}
+.e-tabelle td:first-child,.e-tabelle th:first-child{text-align:left;color:var(--grau)}
 .tr-oben{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .tr-zahl{margin-top:6px}
 .tr-zahl b{font-size:44px;font-weight:780;letter-spacing:-.02em;line-height:1}
@@ -1291,6 +1303,109 @@ function aktivitaetHtml(a){
     <div class="d-werte">${werte.map(([k,v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div></div>
     ${zonenHtml(a.zonen_min)}`;
 }
+
+// ---------- Einordnung eines Trainings: Plan, Ampel, Knie-Aufbau und Vergleich mit den letzten Einheiten ----------
+function minProKm(a){ return a.distanz_km > 0.3 && a.dauer_min ? a.dauer_min / a.distanz_km : null; }
+function paceText(p, pro100=false){ if(!p) return "–"; const x = pro100 ? p/10 : p; const m = Math.floor(x), s = Math.round((x-m)*60);
+  return (s===60 ? (m+1)+":00" : m+":"+String(s).padStart(2,"0")) + (pro100 ? " /100 m" : " /km"); }
+function einordnung(a, e){
+  const plus = [], minus = [], info = [];
+  const z = a.zonen_min || [], zSumme = z.reduce((x,y)=>x+(y||0),0);
+  const z12 = zSumme ? ((z[0]||0)+(z[1]||0)) / zSumme : null, z45 = zSumme ? ((z[3]||0)+(z[4]||0)) / zSumme : null;
+  const pct = x => Math.round(x*100) + " %";
+  // 1. Plan
+  if(e){
+    if(e.dauer_min && a.dauer_min){
+      const r = a.dauer_min / e.dauer_min;
+      if(r > 1.15) (a.sport==="laufen" ? minus : info).push(`${pct(r-1)} länger als geplant (${Math.round(a.dauer_min)} statt ${e.dauer_min} min)${a.sport==="laufen" ? " – beim Laufaufbau zählt Geduld mehr als Extra-Minuten" : ""}`);
+      else if(r >= 0.85) plus.push(`Dauer wie geplant (${Math.round(a.dauer_min)} von ${e.dauer_min} min)`);
+      else info.push(`Kürzer als geplant (${Math.round(a.dauer_min)} statt ${e.dauer_min} min) – okay, wenn es bewusst war`);
+    }
+  }
+  // Ohne Plan gilt Laufen in der Grundlagenphase als locker gemeint
+  const gemeint = e ? e.intensitaet : (a.sport==="laufen" ? "locker" : null);
+  {
+    if(z12!==null && gemeint==="locker" && a.sport!=="kraft"){
+      if(z12 >= 0.8) plus.push(`Wirklich locker geblieben: ${pct(z12)} in Zone 1–2`);
+      else if(z12 < 0.6) minus.push(`Für eine lockere Einheit zu intensiv: nur ${pct(z12)} in Zone 1–2`);
+      else info.push(`${pct(z12)} in Zone 1–2 – beim nächsten Mal etwas ruhiger`);
+    }
+    if(e && z45!==null && (e.intensitaet==="hart" || e.art==="rad_schwelle") && a.sport!=="kraft"){
+      z45 >= 0.15 ? plus.push(`Harter Reiz gesetzt: ${pct(z45)} in Zone 4–5`) : info.push(`Nur ${pct(z45)} in Zone 4–5 – der harte Reiz war eher klein`);
+    }
+  }
+  // 2. Ampel des Tages
+  const ci = zustand.checkins.find(c => c.datum===a.datum);
+  const farbe = (ci && ci.farbe_final) || (a.datum===HEUTE ? tagesAmpel().farbe : null);
+  const fordernd = (a.te_aerob||0) >= 3.5 || (z45 || 0) > 0.15 || (e && e.intensitaet==="hart");
+  if(farbe==="rot") fordernd ? minus.push("Ziemlich fordernd für einen roten Tag") : plus.push("Schonend an einem roten Tag – genau richtig");
+  else if(farbe==="gelb" && (z45 || 0) > 0.25) info.push("Recht intensiv für einen gelben Tag");
+  else if(farbe==="gelb" && !fordernd) plus.push("Passend zu deiner gelben Ampel – nicht übertrieben");
+  // 3. Laufen: 10-%-Regel, Meilenstein, Knie am nächsten Morgen
+  if(a.sport==="laufen"){
+    const vorher = zustand.aktivitaeten.filter(x => x.sport==="laufen" && x.datum < a.datum && x.datum >= plusTage(a.datum, -14));
+    const maxVorher = vorher.length ? Math.max(...vorher.map(x => x.dauer_min)) : 0;
+    if(maxVorher && a.dauer_min > maxVorher * 1.1) minus.push(`Längster Lauf um ${pct(a.dauer_min/maxVorher - 1)} gesteigert (vorher ${Math.round(maxVorher)} min) – Regel: max. +10 % pro Woche`);
+    else if(maxVorher && a.dauer_min > maxVorher) plus.push(`Neuer längster Lauf (vorher ${Math.round(maxVorher)} min) – im Rahmen der 10-%-Regel`);
+    const m = laufaufbau().ziele.find(x => !x.erreicht);
+    if(m) a.dauer_min >= m.ziel_min ? info.push(`Zielmarke für „${m.name}“ (${m.ziel_min} min) geschafft – zählt, wenn das Knie ruhig bleibt`)
+      : info.push(`Meilenstein „${m.name}“: ${Math.round(a.dauer_min)} von ${m.ziel_min} min`);
+    const morgen = zustand.checkins.find(c => c.datum===plusTage(a.datum, 1));
+    const grenze = regeln().knie_schmerz_max || 3;
+    if(morgen && typeof morgen.knie==="number") morgen.knie > grenze ? minus.push(`Knie am nächsten Morgen ${morgen.knie}/10 – über deiner Grenze`)
+      : plus.push(`Knie am nächsten Morgen ${morgen.knie}/10 – im grünen Bereich`);
+    else if(a.datum >= plusTage(HEUTE, -1)) info.push("Wie es dem Knie damit ging, zeigt dein Check-in morgen früh");
+  }
+  // 4. Vergleich mit den letzten 5 Einheiten derselben Sportart
+  const fruehere = zustand.aktivitaeten.filter(x => x.sport===a.sport && x.id!==a.id && (x.datum < a.datum || (x.datum===a.datum && (x.start||"") < (a.start||"")))).slice(-5);
+  const vergleich = [];
+  if(fruehere.length >= 2){
+    const avg = f => { const w = fruehere.map(f).filter(x => x); return w.length ? w.reduce((s,x)=>s+x,0) / w.length : null; };
+    const dauerAvg = avg(x => x.dauer_min);
+    vergleich.push(["Dauer", Math.round(a.dauer_min) + " min", Math.round(dauerAvg) + " min"]);
+    if(a.sport==="laufen" || a.sport==="schwimmen"){
+      const p = minProKm(a), pAvg = avg(minProKm);
+      if(p && pAvg){
+        vergleich.push(["Tempo", paceText(p, a.sport==="schwimmen"), paceText(pAvg, a.sport==="schwimmen")]);
+        const hrAvg = avg(x => x.puls_avg);
+        if(a.sport==="laufen" && a.puls_avg && hrAvg){
+          // Effizienz: Geschwindigkeit pro Herzschlag – steigt, wenn die Grundlage besser wird
+          const eff = (1/p) / a.puls_avg, effAvg = avg(x => minProKm(x) && x.puls_avg ? (1/minProKm(x)) / x.puls_avg : null);
+          if(effAvg){ const d = eff/effAvg - 1;
+            if(d > 0.03) plus.push(`Effizienter als zuletzt: schneller pro Herzschlag (+${pct(d)}) – Zeichen für bessere Grundlage`);
+            else if(d < -0.05) info.push(`Weniger effizient als zuletzt (${pct(d)} Tempo pro Herzschlag) – Hitze, Müdigkeit oder Infekt können das erklären`); }
+        }
+        if(a.sport==="schwimmen"){ const d = pAvg/p - 1;
+          if(d > 0.03) plus.push(`Schneller als deine letzten Schwimmeinheiten (${paceText(p,true)} statt ${paceText(pAvg,true)})`); }
+      }
+    }
+    if(a.sport==="rad" && a.distanz_km && a.typ!=="indoor_cycling"){
+      const k = avg(x => x.distanz_km && x.typ!=="indoor_cycling" ? 60*x.distanz_km/x.dauer_min : null);
+      if(k) vergleich.push(["Ø Tempo", fmtZahl(60*a.distanz_km/a.dauer_min) + " km/h", fmtZahl(k) + " km/h"]);
+    }
+    const hr = avg(x => x.puls_avg); if(a.puls_avg && hr) vergleich.push(["Ø Puls", Math.round(a.puls_avg) + " bpm", Math.round(hr) + " bpm"]);
+    const last = avg(x => x.last); if(a.last && last) vergleich.push(["Trainingslast", Math.round(a.last), Math.round(last)]);
+    // Rang: längste Einheit seit …
+    const alle = zustand.aktivitaeten.filter(x => x.sport===a.sport && x.datum < a.datum);
+    const laenger = alle.filter(x => x.dauer_min >= a.dauer_min).pop();
+    if(!laenger && alle.length >= 5) plus.push(`Deine längste Einheit dieser Sportart überhaupt`);
+    else if(laenger && tageZwischen(laenger.datum, a.datum) >= 28) info.push(`Längste Einheit dieser Sportart seit ${datumKurz(laenger.datum)}`);
+  }
+  const urteil = minus.length >= 2 ? ["p-rot", "Vorsicht"] : minus.length ? ["p-gelb", "Okay – mit Hinweis"]
+    : plus.length >= 2 ? ["p-gruen", "Sehr gut für deinen Fortschritt"] : plus.length ? ["p-gruen", "Gut für deinen Fortschritt"]
+    : ["p-grau", "Im üblichen Rahmen"];
+  return {plus, minus, info, vergleich, urteil, n: fruehere.length};
+}
+function einordnungHtml(a, e){
+  if(!a) return "";
+  const r = einordnung(a, e);
+  const zeile = (zeichen, klasse, t) => `<li class="${klasse}"><span>${zeichen}</span>${esc(t)}</li>`;
+  const liste = [...r.minus.map(t => zeile("!", "minus", t)), ...r.plus.map(t => zeile("✓", "plus", t)), ...r.info.map(t => zeile("·", "info", t))].join("");
+  const tab = r.vergleich.length ? `<table class="e-tabelle"><tr><th></th><th>Heute</th><th>Ø letzte ${r.n}</th></tr>${
+    r.vergleich.map(([k, v, w]) => `<tr><td>${esc(k)}</td><td><b>${esc(v)}</b></td><td>${esc(w)}</td></tr>`).join("")}</table>` : "";
+  return `<div class="d-abschnitt einordnung"><div class="e-kopf"><span class="augenbraue">Einordnung</span><span class="pille ${r.urteil[0]}">${esc(r.urteil[1])}</span></div>
+    ${liste ? `<ul class="e-liste">${liste}</ul>` : ""}${tab}</div>`;
+}
 function kraftHtml(e){
   const log = zustand.kraft.find(k => k.datum===e.datum && k.einheit===e.art);
   const def = zustand.uebungen[e.art];
@@ -1310,7 +1425,7 @@ function detailKarte(){
     if(!a) return "";
     return `<div class="karte detail"><div class="augenbraue">${datumKurz(a.datum)} · nicht geplant</div>
       <h2><span class="punkt gross" style="background:${SPORT_FARBEN[a.sport]||"#BDB7AD"}"></span>${esc(a.name || SPORT_NAMEN[a.sport])}</h2>
-      ${aktivitaetHtml(a)}${a.sport==="kraft" ? zustand.kraft.filter(k => k.datum===a.datum).map(k => kraftHtml({datum:k.datum, art:k.einheit})).join("") : ""}</div>`;
+      ${einordnungHtml(a, null)}${aktivitaetHtml(a)}${a.sport==="kraft" ? zustand.kraft.filter(k => k.datum===a.datum).map(k => kraftHtml({datum:k.datum, art:k.einheit})).join("") : ""}</div>`;
   }
   const e = zustand.plan.find(x => x.id===auswahl.id);
   if(!e) return "";
@@ -1355,6 +1470,7 @@ function detailKarte(){
     ${regel.length ? `<div class="warnung"><b>Regelhinweis:</b><ul>${regel.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
     ${verlauf.length ? `<div class="d-verlauf">${verlauf.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
     ${e.notiz ? `<div class="d-notiz"><b>Notiz:</b> ${esc(e.notiz)}</div>` : ""}
+    ${fertig ? einordnungHtml(fertig, e) : ""}
     ${(() => { const spalten = [varianten, (fertig ? aktivitaetHtml(fertig) : "") + kraftHtml(e)].filter(Boolean);
       return `<div class="d-raster ${spalten.length < 2 ? "einspaltig" : ""}">${spalten.map(x => `<div>${x}</div>`).join("")}</div>`; })()}
     <div class="d-aktionen">
