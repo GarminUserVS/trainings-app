@@ -418,6 +418,14 @@ function b64zuText(b64){ const bin=atob(b64.replace(/\n/g,"")); const bytes=Uint
 function textZuB64(text){ const bytes=new TextEncoder().encode(text); let bin=""; for(let i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+0x8000)); return btoa(bin); }
 
 async function gh(pfad, opt={}){
+  // Lesen: bei Server-Aussetzern von GitHub (5xx) bis zu 3× kurz warten und neu versuchen
+  for(let v=0; ; v++){
+    const res = await ghEinmal(pfad, opt);
+    if(res.status < 500 || opt.method || v >= 3) return res;
+    await new Promise(r => setTimeout(r, 800 * (v + 1)));
+  }
+}
+async function ghEinmal(pfad, opt={}){
   const tk = token();
   const res = await fetch(API + pfad + (opt.method ? "" : "?ref=main&t=" + Date.now()), {
     method: opt.method || "GET",
@@ -431,6 +439,7 @@ async function ladeJson(pfad, standard){
   const res = await gh(pfad);
   if(res.status===404) return {daten: standard, sha: null};
   if(res.status===401) throw new Error("token");
+  if(res.status >= 500) throw new Error("GitHub hat gerade ein Problem (Fehler " + res.status + "). Bitte in ein paar Minuten nochmal versuchen.");
   if(!res.ok) throw new Error("GitHub antwortet mit " + res.status + " für " + pfad);
   const j = await res.json();
   return {daten: JSON.parse(b64zuText(j.content)), sha: j.sha};
