@@ -233,6 +233,41 @@ ul.punkte li{margin:3px 0}
 .f-tabelle th,.f-tabelle td{text-align:right;padding:5px 4px;border-top:1px solid var(--linie)}
 .f-tabelle th:first-child,.f-tabelle td:first-child{text-align:left}
 .c-chart{margin-top:4px}
+@media (max-width: 420px){ .reiter button{padding:7px 10px;font-size:13.5px} }
+.s-balken-wrap{position:relative;margin-top:34px}
+.s-balken{display:flex;gap:2px;height:30px;border-radius:8px;overflow:hidden}
+.s-block{display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700}
+.s-block:nth-child(-n+2){color:var(--tinte)}
+.s-heute{position:absolute;top:-6px;bottom:-6px;width:0;border-left:2px solid var(--tinte)}
+.s-heute span{position:absolute;top:-17px;left:-14px;font-size:11px;font-weight:700}
+.s-balken-daten{display:flex;justify-content:space-between;font-size:12px;color:var(--grau);margin-top:6px}
+.s-raster{margin-top:14px;display:grid;gap:6px}
+.s-monat{display:grid;grid-template-columns:52px 1fr;align-items:center;gap:8px}
+.s-mname{font-size:12px;color:var(--grau);font-weight:600}
+.s-wochen{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.s-woche{appearance:none;border:0;font:inherit;font-size:11px;font-weight:650;height:28px;border-radius:7px;cursor:pointer;background:var(--f);color:#fff;padding:0}
+.s-woche.entlastung{background:repeating-linear-gradient(135deg,var(--f) 0 4px,#fff 4px 7px);color:var(--tinte);opacity:.85}
+.s-woche.entlastung span{background:#fff;border-radius:5px;padding:1px 5px}
+.s-woche.taper{background:#fff;border:2px solid var(--f);color:var(--tinte)}
+.s-woche.vorbei{opacity:.45}
+.s-woche.heute{outline:2px solid var(--tinte);outline-offset:1px}
+.s-woche.gewaehlt{box-shadow:0 0 0 3px var(--gelb)}
+.s-leg-entl{background:repeating-linear-gradient(135deg,#3B78BC 0 3px,#fff 3px 5px)!important}
+.s-leg-taper{background:#fff!important;border:2px solid #13305A;box-sizing:border-box}
+.s-info{background:var(--feld);border-radius:12px;padding:10px 12px;font-size:13.5px;margin-top:12px;line-height:1.45}
+.s-karten{display:grid;gap:0}
+.s-karte summary{list-style:none;cursor:pointer}
+.s-karte summary::-webkit-details-marker{display:none}
+.s-karte.vorbei{opacity:.7}
+.s-karte.aktiv{box-shadow:inset 0 0 0 2px var(--tinte)}
+.s-kopf{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.s-nr{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:750;font-size:14px;flex:none}
+.s-fokus{list-style:none;padding:0;margin:12px 0 0;font-size:14px}
+.s-fokus li{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--linie)}
+.s-fokus .punkt{margin-top:6px;flex:none}
+.s-chips{display:flex;flex-wrap:wrap;gap:6px}
+.s-chips span{background:var(--spur);border-radius:999px;padding:5px 11px;font-size:13px}
+@media (min-width: 900px){ .s-karten{grid-template-columns:1fr 1fr;gap:0 16px;align-items:start} .s-karte.aktiv{grid-column:1/-1} }
 .einordnung{background:var(--feld);border-radius:14px;padding:14px 16px;margin-top:14px}
 .e-kopf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .e-liste{list-style:none;margin:10px 0 0;padding:0;font-size:14px}
@@ -1020,11 +1055,12 @@ function reiter(aktiv){
   return `<div class="reiter-zeile"><nav class="reiter">
     <button data-reiter="heute" class="${aktiv==="heute"?"an":""}">Heute</button>
     <button data-reiter="kalender" class="${aktiv==="kalender"?"an":""}">Kalender</button>
-    <button data-reiter="fortschritt" class="${aktiv==="fortschritt"?"an":""}">Fortschritt</button></nav>
+    <button data-reiter="fortschritt" class="${aktiv==="fortschritt"?"an":""}">Fortschritt</button>
+    <button data-reiter="saison" class="${aktiv==="saison"?"an":""}">Saison</button></nav>
     <button class="sync ${sync.laeuft?"laeuft":""}" id="sync" ${sync.laeuft?"disabled":""}>${syncText()}</button></div>`;
 }
 function bindeReiter(){
-  document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => ({kalender:zeigeKalender, fortschritt:zeigeFortschritt}[b.dataset.reiter] || zeigeHeute)());
+  document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => ({kalender:zeigeKalender, fortschritt:zeigeFortschritt, saison:zeigeSaison}[b.dataset.reiter] || zeigeHeute)());
   if($("#sync")) $("#sync").onclick = () => sync.neu.length ? zeigeNeuesTraining() : holeTrainings();
 }
 
@@ -1064,7 +1100,7 @@ function zeigeNeuesTraining(){
   const d = document.querySelector(".karte.detail"); if(d) d.scrollIntoView({behavior:"smooth", block:"start"});
 }
 function zeigeSync(){ const b = $("#sync"); if(b){ b.className = "sync" + (sync.laeuft?" laeuft":""); b.disabled = sync.laeuft; b.innerHTML = syncText(); } }
-function ansichtNeu(){ ({kalender:zeigeKalender, fortschritt:zeigeFortschritt}[zustand.ansicht] || zeigeHeute)(); }
+function ansichtNeu(){ ({kalender:zeigeKalender, fortschritt:zeigeFortschritt, saison:zeigeSaison}[zustand.ansicht] || zeigeHeute)(); }
 async function ghActions(pfad, opt={}){
   return fetch("https://api.github.com/repos/" + REPO + "/actions/" + pfad, {method: opt.method || "GET", cache:"no-store",
     headers:{"Authorization":"Bearer "+token(), "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"},
@@ -2437,6 +2473,96 @@ function readinessKarte(){
       <b>Juni:</b> Ab heute +10 % pro Woche mit Entlastungswochen; die volle Distanz sollte bis ${datumKurz(r.bisJuni)} (2 Wochen vor dem Wettkampf) im Training stehen.
       Koppeltrainings (Rad → Lauf) der letzten 8 Wochen: ${r.koppel} – ab dem Frühjahr wichtig, zählt erst dann mit.</div></details>
   </div>`;
+}
+
+
+// ---------- Saison: grober Plan bis zum Wettkampf (aus einstellungen.json → saison) ----------
+const BLOCK_FARBEN = ["#A9C7E8","#6FA3D6","#3B78BC","#24548F","#13305A"];
+let saisonWahl = null;
+function saisonWochen(){
+  const sa = zustand.einstellungen.saison || {}, bl = sa.bloecke || [];
+  if(!bl.length) return [];
+  const ab = sa.entlastung_ab || bl[0].von, alle = sa.entlastung_alle_wochen || 4;
+  const out = [];
+  for(let w = montag(bl[0].von); w <= bl[bl.length-1].bis; w = plusTage(w, 7)){
+    const i = bl.findIndex(b => w >= montag(b.von) && w <= b.bis);
+    if(i < 0) continue;
+    const b = bl[i], echt = zustand.wochen.find(x => x.start===w);
+    const nr = Math.round(tageZwischen(ab, w) / 7);
+    let art = b.id==="taper" ? "taper" : (nr >= 0 && nr % alle === 0 ? "entlastung" : "belastung");
+    if(echt) art = echt.modus==="entlastung" ? "entlastung" : (art==="taper" ? "taper" : "belastung");
+    const ende = plusTage(w, 6);
+    const stunden = w <= HEUTE ? zustand.aktivitaeten.filter(a => a.sport!=="wechsel" && a.datum >= w && a.datum <= ende).reduce((s2, a) => s2 + (a.dauer_min||0)/60, 0) : null;
+    const meilensteine = ((zustand.einstellungen.ziele || {}).halbmarathon_meilensteine || []).filter(m => m.bis >= w && m.bis <= ende).map(m => m.name);
+    const wk = (zustand.einstellungen.ziele || {}).hauptwettkampf;
+    if(wk && wk.datum >= w && wk.datum <= ende) meilensteine.push(wk.name);
+    out.push({w, ende, i, b, art, echt, stunden, meilensteine, kw: kwVon(w)});
+  }
+  return out;
+}
+function kwVon(iso){ const d = new Date(iso+"T12:00:00"); d.setDate(d.getDate()+3); const j = new Date(d.getFullYear(),0,4);
+  return 1 + Math.round(((d - j) / 864e5 - 3 + (j.getDay()+6)%7) / 7); }
+const ART_TEXT = {belastung:"Belastungswoche", entlastung:"Entlastungswoche", taper:"Tapering"};
+function wochenInfo(x){
+  const teile = [`<b>KW ${x.kw}</b> · ${tagMonat(x.w)}–${tagMonat(x.ende)}`, esc(x.b.name), ART_TEXT[x.art]];
+  if(x.echt) teile.push(`geplant: ${x.echt.modus==="entlastung" ? "Entlastung" : x.echt.modus==="halten" ? "Halten" : "Steigern"}`);
+  if(x.stunden!==null) teile.push(`${fmtZahl(x.stunden)} h trainiert`);
+  return teile.join(" · ") + (x.meilensteine.length ? `<div style="margin-top:4px">🏁 ${esc(x.meilensteine.join(" · "))}</div>` : "");
+}
+function zeigeSaison(){
+  $("#leiste").hidden = true;
+  const sa = zustand.einstellungen.saison || {}, bl = sa.bloecke || [];
+  if(!bl.length){ $("#app").innerHTML = `${reiter("saison")}<h1>Saison</h1><div class="karte leer">Noch kein Saisonplan hinterlegt.</div>`; bindeReiter(); return; }
+  const wochen = saisonWochen();
+  const jetzt = wochen.find(x => x.w===montag(HEUTE));
+  const aktiv = jetzt ? jetzt.i : (HEUTE < bl[0].von ? 0 : bl.length - 1);
+  const gesamt = tageZwischen(bl[0].von, bl[bl.length-1].bis) + 1;
+  // Balken der Blöcke, proportional zur Dauer, mit „Heute“-Marke
+  const balken = bl.map((b, i) => `<div class="s-block ${i===aktiv?"jetzt":""}" style="flex:${tageZwischen(b.von, b.bis)+1};background:${BLOCK_FARBEN[i % 5]}" title="${esc(b.name)}"><span>${i+1}</span></div>`).join("");
+  const heutePos = Math.min(100, Math.max(0, 100 * tageZwischen(bl[0].von, HEUTE) / gesamt));
+  // Wochenraster nach Monaten
+  const monate = {};
+  wochen.forEach(x => { const m = x.w.slice(0, 7); (monate[m] = monate[m] || []).push(x); });
+  const MONATE = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+  const raster = Object.entries(monate).map(([m, ws]) => `<div class="s-monat"><span class="s-mname">${MONATE[+m.slice(5)-1]} ${m.slice(2,4)}</span><div class="s-wochen">${
+    ws.map(x => `<button class="s-woche ${x.art} ${x.w===montag(HEUTE)?"heute":""} ${x.w < montag(HEUTE)?"vorbei":""}" data-woche="${x.w}"
+      style="--f:${BLOCK_FARBEN[x.i % 5]}" aria-label="KW ${x.kw}"><span>${x.meilensteine.length ? "🏁" : x.kw}</span></button>`).join("")}</div></div>`).join("");
+  const legende = `<div class="c-legende"><span><i style="background:${BLOCK_FARBEN[2]}"></i>Belastung</span>
+    <span><i class="s-leg-entl"></i>Entlastung</span><span><i class="s-leg-taper"></i>Tapering</span><span>🏁 Meilenstein</span></div>`;
+  const wahl = wochen.find(x => x.w===saisonWahl) || jetzt || wochen[0];
+  // Blöcke im Detail
+  const ziele = (zustand.einstellungen.ziele || {}).halbmarathon_meilensteine || [];
+  const karten = bl.map((b, i) => {
+    const ws = wochen.filter(x => x.i===i), nr = ws.findIndex(x => x.w===montag(HEUTE));
+    const vorbei = b.bis < HEUTE, ms = ziele.filter(m => m.bis >= b.von && m.bis <= b.bis);
+    const status = i===aktiv && !vorbei ? `<span class="pille p-gruen">Jetzt · Woche ${nr+1} von ${ws.length}</span>` : vorbei ? `<span class="pille p-grau">erledigt</span>` : "";
+    const fokus = Object.entries(b.fokus || {}).map(([sp, t]) => `<li><span class="punkt" style="background:${SPORT_FARBEN[sp]||"#BDB7AD"}"></span><div><b>${esc(SPORT_NAMEN[sp]||sp)}:</b> ${esc(t)}</div></li>`).join("");
+    const inhalt = `<p style="margin:10px 0 0">${esc(b.ziel)}</p>
+      <ul class="s-fokus">${fokus}</ul>
+      <div class="f-unter" style="margin-top:12px">Schlüsseleinheiten</div><div class="s-chips">${(b.schluessel||[]).map(k => `<span>${esc(k)}</span>`).join("")}</div>
+      ${ms.length ? `<div class="f-unter">Meilensteine</div>${ms.map(m => `<div class="f-zeile"><span>🏁 ${esc(m.name)}</span><b>${tagMonat(m.bis)}</b></div>`).join("")}` : ""}`;
+    const kopf = `<div class="s-kopf"><span class="s-nr" style="background:${BLOCK_FARBEN[i % 5]}">${i+1}</span><div style="flex:1"><b>${esc(b.name)}</b>
+      <div class="klein-grau">${datumKurz(b.von)} – ${datumKurz(b.bis)} · ${ws.length} Wochen · Phase ${esc(b.phase)}</div></div>${status}</div>`;
+    return i===aktiv ? `<div class="karte s-karte aktiv">${kopf}${inhalt}</div>`
+      : `<details class="karte s-karte ${vorbei?"vorbei":""}"><summary>${kopf}</summary>${inhalt}</details>`;
+  }).join("");
+  const wk = (zustand.einstellungen.ziele || {}).hauptwettkampf || {};
+  $("#app").innerHTML = `${reiter("saison")}
+    <h1>Saison</h1>
+    <div class="f-countdown">${wk.datum ? `<b>${Math.ceil(tageZwischen(HEUTE, wk.datum)/7)}</b> Wochen bis ${esc(wk.name || "zum Wettkampf")}` : ""}</div>
+    <div class="karte"><span class="augenbraue">Überblick</span>
+      <div class="s-balken-wrap"><div class="s-balken">${balken}</div><div class="s-heute" style="left:${heutePos}%"><span>heute</span></div></div>
+      <div class="s-balken-daten"><span>${tagMonat(bl[0].von)}</span><span>🏁 ${tagMonat(bl[bl.length-1].bis)}</span></div>
+      <div class="s-raster">${raster}</div>${legende}
+      <div class="s-info" id="s-info">${wochenInfo(wahl)}</div>
+      <p class="klein-grau" style="margin:10px 0 0">Grober Rahmen – die Details entstehen jeden Sonntag in der Wochenplanung und passen sich an Ampel, Infekte und Knie an.</p></div>
+    <div class="s-karten">${karten}</div>`;
+  bindeReiter();
+  document.querySelectorAll("[data-woche]").forEach(b => b.onclick = () => {
+    saisonWahl = b.dataset.woche; document.querySelectorAll(".s-woche.gewaehlt").forEach(x => x.classList.remove("gewaehlt"));
+    b.classList.add("gewaehlt"); $("#s-info").innerHTML = wochenInfo(wochen.find(x => x.w===saisonWahl));
+  });
+  const g = document.querySelector(`[data-woche="${wahl.w}"]`); if(g) g.classList.add("gewaehlt");
 }
 
 function zeigeFortschritt(){
