@@ -660,6 +660,12 @@ function zusammensetzung(){
 function heuteFuer(e, t){
   if(e.sport==="laufen" && t.laufsperre)
     return {label:"Heute kein Lauf:", text:"Knie oder Hüfte über 3/10 – stattdessen locker Rad oder Schwimmen.", farbe:"rot"};
+  if(e.art==="test_rad"){
+    const noetig = (regeln().steigerung || {}).hart_steigern_nach_wochen_ohne_infekt || 3;
+    const inf = zustand.checkins.filter(c => c.infekt && c.infekt!=="nein").map(c => c.datum).sort().pop();
+    if(inf && tageZwischen(inf, e.datum) < 7 * noetig)
+      return {label:"Test heute noch nicht:", text:[`Letzter Infekt am ${datumKurz(inf)} – noch keine ${noetig} infektfreien Wochen.`, "Test in eine spätere Woche verschieben (z. B. ab 28.12.)", "Stattdessen 45 min locker Zone 2"], farbe:"gelb"};
+  }
   if(!t.farbe) return null;
   const v = e.varianten || {};
   if(t.wenigZeit && t.farbe==="gruen" && v.gelb) return {label:"Kurzversion (wenig Zeit):", text:v.gelb, farbe:"gelb"};
@@ -2496,9 +2502,17 @@ function saisonWochen(){
     const meilensteine = ((zustand.einstellungen.ziele || {}).halbmarathon_meilensteine || []).filter(m => m.bis >= w && m.bis <= ende).map(m => m.name);
     const wk = (zustand.einstellungen.ziele || {}).hauptwettkampf;
     if(wk && wk.datum >= w && wk.datum <= ende) meilensteine.push(wk.name);
-    out.push({w, ende, i, b, art, echt, stunden, meilensteine, kw: kwVon(w)});
+    const tests = saisonTests().filter(t => t.datum >= w && t.datum <= ende);
+    out.push({w, ende, i, b, art, echt, stunden, meilensteine, tests, kw: kwVon(w)});
   }
   return out;
+}
+// Tests: Datum aus dem Plan (falls verschoben), Status erledigt/gestrichen
+function saisonTests(){
+  return ((zustand.einstellungen.saison || {}).tests || []).map(t => {
+    const e = zustand.plan.find(x => x.id===t.plan_id);
+    return {...t, datum: e ? e.datum : t.datum, eintrag: e, erledigt: e ? !!erledigtDurch(e) : false, gestrichen: e && e.status==="gestrichen"};
+  }).filter(t => !t.gestrichen);
 }
 function kwVon(iso){ const d = new Date(iso+"T12:00:00"); d.setDate(d.getDate()+3); const j = new Date(d.getFullYear(),0,4);
   return 1 + Math.round(((d - j) / 864e5 - 3 + (j.getDay()+6)%7) / 7); }
@@ -2507,7 +2521,8 @@ function wochenInfo(x){
   const teile = [`<b>KW ${x.kw}</b> · ${tagMonat(x.w)}–${tagMonat(x.ende)}`, esc(x.b.name), ART_TEXT[x.art]];
   if(x.echt) teile.push(`geplant: ${x.echt.modus==="entlastung" ? "Entlastung" : x.echt.modus==="halten" ? "Halten" : "Steigern"}`);
   if(x.stunden!==null) teile.push(`${fmtZahl(x.stunden)} h trainiert`);
-  return teile.join(" · ") + (x.meilensteine.length ? `<div style="margin-top:4px">🏁 ${esc(x.meilensteine.join(" · "))}</div>` : "");
+  return teile.join(" · ") + (x.meilensteine.length ? `<div style="margin-top:4px">🏁 ${esc(x.meilensteine.join(" · "))}</div>` : "")
+    + x.tests.map(t => `<div style="margin-top:4px">🧪 <b>${esc(t.name)}</b> am ${datumKurz(t.datum)}${t.erledigt ? " ✓" : ""} – ${esc(t.wozu)}. <span class="klein-grau">${esc(t.bedingung)}</span></div>`).join("");
 }
 function zeigeSaison(){
   $("#leiste").hidden = true;
@@ -2526,9 +2541,9 @@ function zeigeSaison(){
   const MONATE = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
   const raster = Object.entries(monate).map(([m, ws]) => `<div class="s-monat"><span class="s-mname">${MONATE[+m.slice(5)-1]} ${m.slice(2,4)}</span><div class="s-wochen">${
     ws.map(x => `<button class="s-woche ${x.art} ${x.w===montag(HEUTE)?"heute":""} ${x.w < montag(HEUTE)?"vorbei":""}" data-woche="${x.w}"
-      style="--f:${BLOCK_FARBEN[x.i % 5]}" aria-label="KW ${x.kw}"><span>${x.meilensteine.length ? "🏁" : x.kw}</span></button>`).join("")}</div></div>`).join("");
+      style="--f:${BLOCK_FARBEN[x.i % 5]}" aria-label="KW ${x.kw}"><span>${x.meilensteine.length ? "🏁" : x.tests.length ? "🧪" : x.kw}</span></button>`).join("")}</div></div>`).join("");
   const legende = `<div class="c-legende"><span><i style="background:${BLOCK_FARBEN[2]}"></i>Belastung</span>
-    <span><i class="s-leg-entl"></i>Entlastung</span><span><i class="s-leg-taper"></i>Tapering</span><span>🏁 Meilenstein</span></div>`;
+    <span><i class="s-leg-entl"></i>Entlastung</span><span><i class="s-leg-taper"></i>Tapering</span><span>🏁 Meilenstein</span><span>🧪 Test</span></div>`;
   const wahl = wochen.find(x => x.w===saisonWahl) || jetzt || wochen[0];
   // Blöcke im Detail
   const ziele = (zustand.einstellungen.ziele || {}).halbmarathon_meilensteine || [];
@@ -2540,7 +2555,9 @@ function zeigeSaison(){
     const inhalt = `<p style="margin:10px 0 0">${esc(b.ziel)}</p>
       <ul class="s-fokus">${fokus}</ul>
       <div class="f-unter" style="margin-top:12px">Schlüsseleinheiten</div><div class="s-chips">${(b.schluessel||[]).map(k => `<span>${esc(k)}</span>`).join("")}</div>
-      ${ms.length ? `<div class="f-unter">Meilensteine</div>${ms.map(m => `<div class="f-zeile"><span>🏁 ${esc(m.name)}</span><b>${tagMonat(m.bis)}</b></div>`).join("")}` : ""}`;
+      ${ms.length ? `<div class="f-unter">Meilensteine</div>${ms.map(m => `<div class="f-zeile"><span>🏁 ${esc(m.name)}</span><b>${tagMonat(m.bis)}</b></div>`).join("")}` : ""}
+      ${(() => { const ts = saisonTests().filter(t => t.datum >= b.von && t.datum <= b.bis);
+        return ts.length ? `<div class="f-unter">Tests</div>${ts.map(t => `<div class="f-zeile"><span>🧪 ${esc(t.name)}<div class="klein-grau">${esc(t.wozu)}</div></span><b>${t.erledigt ? "✓ " : ""}${tagMonat(t.datum)}</b></div>`).join("")}` : ""; })()}`;
     const kopf = `<div class="s-kopf"><span class="s-nr" style="background:${BLOCK_FARBEN[i % 5]}">${i+1}</span><div style="flex:1"><b>${esc(b.name)}</b>
       <div class="klein-grau">${datumKurz(b.von)} – ${datumKurz(b.bis)} · ${ws.length} Wochen · Phase ${esc(b.phase)}</div></div>${status}</div>`;
     return i===aktiv ? `<div class="karte s-karte aktiv">${kopf}${inhalt}</div>`
