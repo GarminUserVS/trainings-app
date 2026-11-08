@@ -233,6 +233,7 @@ ul.punkte li{margin:3px 0}
 .f-tabelle th,.f-tabelle td{text-align:right;padding:5px 4px;border-top:1px solid var(--linie)}
 .f-tabelle th:first-child,.f-tabelle td:first-child{text-align:left}
 .c-chart{margin-top:4px}
+.fit-knopf{margin-top:14px;width:100%}
 @media (max-width: 420px){ .reiter button{padding:7px 10px;font-size:13.5px} }
 .s-balken-wrap{position:relative;margin-top:34px}
 .s-balken{display:flex;gap:2px;height:30px;border-radius:8px;overflow:hidden}
@@ -550,7 +551,7 @@ function zeigeEinrichtung(fehler){
 // ---------- Tages-Ampel: Garmin-Werte + Check-in (das Gefühl hat Vorrang) ----------
 const RANG = {rot:0, gelb:1, gruen:2};
 const INFEKT = {nein:"Nein", ober:"Nur oberhalb des Halses", unter:"Unterhalb des Halses oder Fieber"};
-const SCHNELL = {muede:"Müde", muskelkater:"Muskelkater", wenig_zeit:"Wenig Zeit"};
+const SCHNELL = {fit:"Fühle mich fit", muede:"Müde", muskelkater:"Muskelkater", wenig_zeit:"Wenig Zeit"};
 function checkinHeute(){ return zustand.checkins.find(c => c.datum===HEUTE) || null; }
 function liefGestern(){
   const gestern = plusTage(HEUTE, -1);
@@ -578,6 +579,26 @@ function tagesAmpel(){
   }
   if(c.knie_ruhig===false) t.hinweise.push("Knie war nach dem letzten Lauf nicht ruhig: Laufdauer nicht steigern.");
   if((c.schnell||[]).includes("wenig_zeit")){ t.wenigZeit = true; }
+  // Gefühl darf die Ampel auch anheben: Gelb → Grün, Rot → höchstens Gelb – aber nicht bei Warnzeichen
+  t.anhebenMoeglich = false;
+  const vorher = t.farbe;
+  const blockiert = [];
+  if(c.infekt && c.infekt!=="nein") blockiert.push("Infektgefühl");
+  if(c.energie!==null && c.energie!==undefined && c.energie < 4) blockiert.push("Energie unter 4/5");
+  if((c.knie ?? 0) > 3 || (c.huefte ?? 0) > 3) blockiert.push("Knie/Hüfte über 3/10");
+  if((c.schnell||[]).includes("muede")) blockiert.push("„Müde“ angegeben");
+  if(t.farbe && t.farbe!=="gruen" && !blockiert.length){
+    t.anhebenMoeglich = true;
+    if((c.schnell||[]).includes("fit")){
+      t.farbe = t.farbe==="gelb" ? "gruen" : "gelb";
+      t.angehoben = true;
+      t.gruende.push("du fühlst dich fit (Energie " + c.energie + "/5, keine Beschwerden)");
+      if(vorher==="rot") t.hinweise.push("Bei roten Werten hebt dein Gefühl die Ampel nur auf Gelb – rote Werte kündigen oft einen Infekt an, bevor man ihn spürt.");
+      else t.hinweise.push("Normales Training – aber hör auf deinen Körper: Fühlt es sich beim Aufwärmen schwer an, auf Gelb zurückschalten.");
+    }
+  } else if((c.schnell||[]).includes("fit") && t.farbe && t.farbe!=="gruen" && blockiert.length){
+    t.hinweise.push("Ampel nicht angehoben, weil: " + blockiert.join(", ") + ".");
+  }
   if((c.schnell||[]).includes("muede") && t.farbe==="gruen") t.hinweise.push("Müde trotz guter Werte: Intensität lieber etwas rausnehmen.");
   return t;
 }
@@ -611,7 +632,7 @@ function ampelKarte(t){
     : `<span class="score" style="font-size:32px;line-height:40px">Check-in</span>`;
   const anpassung = (t.gruende.length || t.hinweise.length)
     ? `<ul class="anpassung" style="padding-left:18px;margin-bottom:0">${
-        (angepasst ? [`Durch deinen Check-in von ${AMPEL[t.garmin].wort} auf ${a.wort} gesenkt: ${t.gruende.join(", ")}.`]
+        (angepasst ? [`Durch deinen Check-in von ${AMPEL[t.garmin].wort} auf ${a.wort} ${t.angehoben ? "angehoben" : "gesenkt"}: ${t.gruende.join(", ")}.`]
           : t.gruende.length ? [`Dein Check-in bestätigt ${a.wort}: ${t.gruende.join(", ")}.`] : [])
         .concat(t.hinweise).map(h => `<li>${esc(h)}</li>`).join("")}</ul>` : "";
   return `<div class="karte">
@@ -620,8 +641,25 @@ function ampelKarte(t){
     <div class="rat">${esc(RAT[t.farbe])}</div>${anpassung}
     ${t.score!==null ? `<div class="spur"><i style="width:${Math.max(0,Math.min(100,t.score))}%;background:${AMPEL[t.garmin].farbe}"></i></div>` : ""}
     ${angepasst ? `<div class="werte-zeile">Garmin-Werte allein: ${t.score} · ${AMPEL[t.garmin].wort}</div>` : ""}
+    ${t.anhebenMoeglich && !t.angehoben ? `<button class="knopf hell fit-knopf" id="fit-knopf">Ich fühle mich gut – ${t.farbe==="gelb" ? "normal trainieren" : "auf Gelb anheben"}</button>` : ""}
+    ${t.angehoben ? `<button class="link" id="fit-zurueck" style="margin-top:8px">Doch nicht – zurück auf ${AMPEL[t.garmin].wort}</button>` : ""}
     ${zusammensetzung()}
   </div>`;
+}
+// Gefühl „fit“ direkt von der Startseite setzen oder zurücknehmen
+async function setzeFit(an){
+  const c = checkinHeute(); if(!c) return;
+  const neu = {...c, schnell: (c.schnell||[]).filter(x => x!=="fit").concat(an ? ["fit"] : [])};
+  const vorher = zustand.checkins;
+  zustand.checkins = vorher.filter(x => x.datum!==HEUTE).concat(neu);
+  const t = tagesAmpel(); if(t.farbe) neu.farbe_final = t.farbe;
+  try{
+    zustand.checkins = await aendere("daten/checkins.json", [], liste =>
+      liste.filter(x => x.datum!==HEUTE).concat(neu).sort((a,b) => a.datum < b.datum ? -1 : 1),
+      "Check-in " + HEUTE + (an ? ": fühle mich fit" : ""));
+    zeigeHeute();
+    meldung(an ? `Ampel auf ${AMPEL[t.farbe].wort} – viel Spaß beim Training` : "Zurück auf die Garmin-Ampel");
+  }catch(err){ zustand.checkins = vorher; meldung(err.message==="token" ? "Token ungültig" : err.message); }
 }
 
 const KURZNAME = {hrv:"HRV", ruhepuls:"Ruhepuls", schlaf:"Schlaf", body_battery:"Body Battery"};
@@ -725,6 +763,8 @@ function zeigeHeute(){
     <div class="fuss"><button id="abmelden">Token auf diesem Gerät entfernen</button></div>`;
   document.querySelectorAll("[data-log]").forEach(k => k.onclick = () => zeigeKraftLog(k.dataset.log));
   $("#zum-checkin").onclick = zeigeCheckin;
+  if($("#fit-knopf")) $("#fit-knopf").onclick = () => setzeFit(true);
+  if($("#fit-zurueck")) $("#fit-zurueck").onclick = () => setzeFit(false);
   if($("#zur-planung")) $("#zur-planung").onclick = zeigeWochenplanung;
   bindeReiter();
   $("#abmelden").onclick = () => { if(confirm("Token auf diesem Gerät entfernen?")){ schreib(TOKEN_KEY, null); zeigeEinrichtung(); } };
