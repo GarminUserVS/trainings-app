@@ -234,6 +234,7 @@ ul.punkte li{margin:3px 0}
 .f-tabelle th:first-child,.f-tabelle td:first-child{text-align:left}
 .c-chart{margin-top:4px}
 .fit-knopf{margin-top:14px;width:100%}
+.wahl-link{margin-top:8px;font-size:14px}
 @media (max-width: 420px){ .reiter button{padding:7px 10px;font-size:13.5px} }
 .s-balken-wrap{position:relative;margin-top:34px}
 .s-balken{display:flex;gap:2px;height:30px;border-radius:8px;overflow:hidden}
@@ -704,8 +705,13 @@ function heuteFuer(e, t){
     if(inf && tageZwischen(inf, e.datum) < 7 * noetig)
       return {label:"Test heute noch nicht:", text:[`Letzter Infekt am ${datumKurz(inf)} – noch keine ${noetig} infektfreien Wochen.`, "Test in eine spätere Woche verschieben (z. B. ab 28.12.)", "Stattdessen 45 min locker Zone 2"], farbe:"gelb"};
   }
-  if(!t.farbe) return null;
   const v = e.varianten || {};
+  // Selbst gewählte Variante für heute geht der Ampel-Empfehlung vor
+  if(e.wahl && e.wahl.datum===e.datum && e.datum===HEUTE){
+    if(e.wahl.variante==="normal" && e.details) return {label:"Selbst gewählt – Normalfall:", text:e.details, farbe:"gruen", gewaehlt:true};
+    if(v[e.wahl.variante]) return {label:`Selbst gewählt – ${AMPEL[e.wahl.variante].wort}:`, text:v[e.wahl.variante], farbe:e.wahl.variante, gewaehlt:true};
+  }
+  if(!t.farbe) return null;
   if(t.wenigZeit && t.farbe==="gruen" && v.gelb) return {label:"Kurzversion (wenig Zeit):", text:v.gelb, farbe:"gelb"};
   if(v[t.farbe]) return {label:`Heute bei ${AMPEL[t.farbe].wort}:`, text:v[t.farbe], farbe:t.farbe};
   const hart = e.intensitaet==="hart" || ["kraft_tag_a","rad_schwelle","langer_lauf"].includes(e.art);
@@ -715,6 +721,26 @@ function heuteFuer(e, t){
   if(t.farbe==="rot") return {label:"Heute lieber Ruhe:", text:"Nur wenn es dir guttut: ein paar Minuten sanfte Mobility oder ein Spaziergang. Sonst einfach weglassen.", farbe:"rot"};
   if(t.wenigZeit) return {label:"Wenig Zeit:", text:"Kernteil machen, Ein- und Auslaufen bzw. Zusatzübungen kürzen.", farbe:"gelb"};
   return null;
+}
+async function waehleVariante(id, variante){
+  try{
+    zustand.plan = await aendere("daten/plan.json", [], plan => plan.map(x => {
+      if(x.id!==id) return x;
+      const y = {...x}; if(variante) y.wahl = {datum: x.datum, variante}; else delete y.wahl; return y;
+    }), variante ? `Plan: ${id} heute als ${variante} gewählt` : `Plan: ${id} zurück zur Ampel-Empfehlung`);
+    ansichtNeu();
+    meldung(variante ? (variante==="normal" ? "Normales Training gewählt" : "Variante gewählt") : "Zurück zur Ampel-Empfehlung");
+  }catch(err){ meldung(err.message==="token" ? "Token ungültig" : err.message); }
+}
+// Ein Klick-Handler für alle „Variante wählen“-Knöpfe, egal in welcher Ansicht
+document.addEventListener("click", ev => {
+  const b = ev.target.closest("[data-wahl]"); if(!b) return;
+  ev.stopPropagation(); ev.preventDefault(); waehleVariante(b.dataset.id, b.dataset.wahl || null);
+}, true);
+function wahlKnopf(e, h){
+  if(!h || e.datum!==HEUTE) return "";
+  if(h.gewaehlt) return `<button class="link wahl-link" data-wahl="" data-id="${esc(e.id)}">Zurück zur Ampel-Empfehlung</button>`;
+  return e.details ? `<button class="link wahl-link" data-wahl="normal" data-id="${esc(e.id)}">Trotzdem normal trainieren</button>` : "";
 }
 function varianteHtml(h, stil=""){
   return `<div class="variante" style="${stil}background:${AMPEL[h.farbe].tint}"><b>${esc(h.label)}</b> ${inhalt(h.text)}</div>`;
@@ -727,7 +753,7 @@ function einheitHtml(e, istHeute){
   // Heute die volle Liste; kommende Tage ohne Details (die stehen im Kalender)
   let unten = e.details && istHeute ? `<div class="einheit-details">${inhalt(e.details)}</div>` : "";
   const h = istHeute ? heuteFuer(e, tagesAmpel()) : null;
-  if(h) unten = varianteHtml(h);
+  if(h) unten = varianteHtml(h) + wahlKnopf(e, h);
   const kraftArt = e.art && zustand.uebungen[e.art] ? e.art : null;
   const log = kraftArt && zustand.kraft.find(k => k.datum===e.datum && k.einheit===kraftArt);
   const knopf = kraftArt && e.datum<=HEUTE
@@ -1532,8 +1558,9 @@ function detailKarte(){
   if(heute){
     hauptteil = `<div class="d-abschnitt"><div class="augenbraue">Heute zu tun</div>
       <div class="d-variante gross" style="border-color:${AMPEL[heute.farbe].farbe};background:${AMPEL[heute.farbe].tint}">
-      <b style="color:${heute.farbe==="gelb" ? "#B7800C" : AMPEL[heute.farbe].farbe}">${esc(heute.label.replace(/:$/, ""))}</b><div>${inhalt(heute.text)}</div></div></div>`;
-    if(e.details) alternativen.push(["Normalfall", e.details, null]);
+      <b style="color:${heute.farbe==="gelb" ? "#B7800C" : AMPEL[heute.farbe].farbe}">${esc(heute.label.replace(/:$/, ""))}</b><div>${inhalt(heute.text)}</div></div>
+      ${heute.gewaehlt ? wahlKnopf(e, heute) : ""}</div>`;
+    if(e.details && !(heute.gewaehlt && e.wahl.variante==="normal")) alternativen.push(["Normalfall", e.details, null]);
   } else {
     hauptteil = e.details ? `<div class="d-text">${inhalt(e.details)}</div>` : "";
     if(zukunft && Object.keys(v).length) hauptteil += `<p class="klein-grau" style="margin:8px 0 0">Ob die volle oder eine leichtere Variante dran ist, entscheidet am Tag selbst deine Ampel.</p>`;
@@ -1541,7 +1568,8 @@ function detailKarte(){
   for(const f of ["gruen","gelb","rot"]) if(v[f] && !(heute && heute.text===v[f])) alternativen.push([AMPEL[f].wort, v[f], f]);
   const varianten = alternativen.length ? `<details class="d-mehr"><summary>${heute ? "Andere Varianten anzeigen" : "Varianten je nach Ampel anzeigen"}</summary>${
     alternativen.map(([titel, text, f]) => `<div class="d-variante" style="border-color:${f ? AMPEL[f].farbe : "#BDB7AD"}">
-      <b style="color:${f==="gelb" ? "#B7800C" : f ? AMPEL[f].farbe : "var(--grau)"}">${esc(titel)}</b><div>${inhalt(text)}</div></div>`).join("")}</details>` : "";
+      <b style="color:${f==="gelb" ? "#B7800C" : f ? AMPEL[f].farbe : "var(--grau)"}">${esc(titel)}</b><div>${inhalt(text)}</div>
+      ${heute ? `<button class="knopf klein hell" style="margin-top:10px" data-wahl="${f || "normal"}" data-id="${esc(e.id)}">Diese Variante machen</button>` : ""}</div>`).join("")}</details>` : "";
   const verlauf = [];
   if(e.verschoben_von) verlauf.push(`Verschoben von ${datumKurz(e.verschoben_von)}`);
   if(e.verkuerzt) verlauf.push(e.dauer_min_original ? `Verkürzt von ${e.dauer_min_original} auf ${e.dauer_min} min` : "Verkürzt");
