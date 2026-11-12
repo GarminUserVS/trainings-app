@@ -256,8 +256,8 @@ ul.punkte li{margin:3px 0}
 .s-woche.vorbei{opacity:.45}
 .s-woche.heute{outline:2px solid var(--tinte);outline-offset:1px}
 .s-woche.gewaehlt{box-shadow:0 0 0 3px var(--gelb)}
-.s-leg-entl{background:repeating-linear-gradient(135deg,#B85CB3 0 3px,#fff 3px 5px)!important}
-.s-leg-taper{background:#fff!important;border:2px solid #5C1559;box-sizing:border-box}
+.s-leg-entl{background:repeating-linear-gradient(135deg,var(--b3) 0 3px,#fff 3px 5px)!important}
+.s-leg-taper{background:#fff!important;border:2px solid var(--b5);box-sizing:border-box}
 .s-info{background:var(--feld);border-radius:12px;padding:10px 12px;font-size:13.5px;margin-top:12px;line-height:1.45}
 .s-karten{display:grid;gap:0}
 .s-karte summary{list-style:none;cursor:pointer}
@@ -416,7 +416,8 @@ ul.punkte li{margin:3px 0}
 @font-face{font-family:"Instrument Serif";src:url(fonts/InstrumentSerif.woff) format("woff");font-weight:400;font-display:swap}
 :root{
   --hg:#F6F0FA; --karte:#FFFFFF; --tinte:#2A1633; --grau:#76658A; --hell:#A896B8; --linie:#EADFF2; --spur:#F1E8F6; --feld:#F9F5FC;
-  --pflaume:#8E2A8B; --pflaume-d:#7A1F78; --pflaume-t:#F6DDF3; --pflaume-v:linear-gradient(160deg,#A93AA4,#7A1F78);
+  --pflaume:#8E2A8B; --pflaume-d:#7A1F78; --pflaume-t:#F6DDF3; --pflaume-h:#B84FB3; --pflaume-v:linear-gradient(160deg,#A93AA4,#7A1F78); --schatten:rgba(142,42,139,.6); --auf-akzent:#EBD3EA;
+  --b1:#EBCDE9; --b2:#D79BD3; --b3:#B85CB3; --b4:#8E2A8B; --b5:#5C1559;
   --gruen:#14A06B; --gruen-t:#E1F5EC; --gelb:#E39A00; --gelb-t:#FFF2D6; --rot:#E0365F; --rot-t:#FDE6EC;
   --blau:var(--pflaume); --radius:22px;
   --schrift:"Instrument Sans",system-ui,-apple-system,sans-serif; --serif:"Instrument Serif",Georgia,serif;
@@ -438,7 +439,7 @@ h2{font-weight:650}
 input[type=range]{accent-color:var(--pflaume)}
 .saetze input:focus{border-color:var(--pflaume)}
 .haken input:checked+.box{background:var(--pflaume);border-color:var(--pflaume)}
-.leiste{background:linear-gradient(to top,var(--hg) 70%,rgba(246,240,250,0))}
+.leiste{background:linear-gradient(to top,var(--hg) 70%,transparent)}
 .fehler{color:#A3123A}
 .t-gruen{color:var(--gruen)} .t-gelb{color:#B57A00} .t-rot{color:var(--rot)}
 .ic{display:block;flex:none}
@@ -469,7 +470,7 @@ input[type=range]{accent-color:var(--pflaume)}
 .signale::before{content:"";position:absolute;left:0;right:0;bottom:calc(22px + 37px);border-top:1px dashed var(--hell)}
 .signale::after{content:"dein Schnitt";position:absolute;right:0;bottom:calc(22px + 39px);font-size:10.5px;color:var(--hell)}
 .sig{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;min-width:0}
-.sig i{display:block;width:100%;max-width:26px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#B84FB3,#8E2A8B)}
+.sig i{display:block;width:100%;max-width:26px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--pflaume-h),var(--pflaume))}
 .sig i.tief{background:linear-gradient(180deg,#FF7A97,#E0365F)}
 .sig span{font-size:11.5px;line-height:16px;color:var(--grau);white-space:nowrap}
 #form-mehr .zs{border-top:0;margin-top:0;padding-top:4px}
@@ -516,8 +517,8 @@ ul.schritte li:first-child{border-top:0}
 .w-tag{appearance:none;border:0;background:none;font:inherit;color:var(--tinte);display:flex;flex-direction:column;align-items:center;padding:10px 0 12px;border-radius:16px;cursor:pointer}
 .w-tag .wt{font-size:12px;color:var(--grau)}
 .w-tag .dt{font-size:17px;font-weight:650;margin:2px 0 8px}
-.w-tag.heute{background:var(--pflaume-v);color:#fff;box-shadow:0 8px 18px -8px rgba(142,42,139,.6)}
-.w-tag.heute .wt{color:#EBD3EA}
+.w-tag.heute{background:var(--pflaume-v);color:#fff;box-shadow:0 8px 18px -8px var(--schatten)}
+.w-tag.heute .wt{color:var(--auf-akzent)}
 .w-tag.vorbei{color:var(--hell)}
 .w-punkte{display:flex;justify-content:center;gap:3px;height:6px}
 .w-punkte i{width:6px;height:6px;border-radius:50%;background:var(--pflaume)}
@@ -613,6 +614,27 @@ ul.schritte li:first-child{border-top:0}
   .h-woche>.abschnitt:first-child{margin-top:34px}
   .s-karten{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
+
+/* Farbschemata (wählbar über das Konto-Menü, gespeichert pro Gerät) */
+:root[data-thema="beere"]{
+  --hg:#FBF1F4; --tinte:#2E1620; --grau:#86606F; --hell:#B996A5; --linie:#F2DFE6; --spur:#F7E8EE; --feld:#FDF6F8;
+  --pflaume:#B52D63; --pflaume-d:#96214F; --pflaume-t:#FADCE7; --pflaume-h:#D9578B; --pflaume-v:linear-gradient(160deg,#D2467E,#96214F); --schatten:rgba(181,45,99,.55); --auf-akzent:#F8D3E1;
+  --b1:#F7D3E0; --b2:#EB9DBB; --b3:#D45A8C; --b4:#B52D63; --b5:#741640;
+}
+:root[data-thema="salbei"]{
+  --hg:#EFF4EE; --tinte:#1C2A22; --grau:#5F7468; --hell:#98AC9F; --linie:#DDE8DF; --spur:#E6EEE7; --feld:#F6F9F6;
+  --pflaume:#2F7A55; --pflaume-d:#23613F; --pflaume-t:#D7EDDF; --pflaume-h:#4FA37A; --pflaume-v:linear-gradient(160deg,#3F9468,#23613F); --schatten:rgba(47,122,85,.5); --auf-akzent:#CDEBD9;
+  --b1:#D3EBDC; --b2:#9CD0B1; --b3:#58A57B; --b4:#2F7A55; --b5:#174A32;
+}
+:root[data-thema="lavendel"]{
+  --hg:#F3F2FB; --tinte:#221C3A; --grau:#6C6788; --hell:#A29EC0; --linie:#E4E2F4; --spur:#ECEAF8; --feld:#F8F7FD;
+  --pflaume:#5B4BC4; --pflaume-d:#4636A6; --pflaume-t:#E2DEFA; --pflaume-h:#7D6FE0; --pflaume-v:linear-gradient(160deg,#7062DA,#4636A6); --schatten:rgba(91,75,196,.5); --auf-akzent:#DCD7FA;
+  --b1:#E0DCF9; --b2:#B6ADF0; --b3:#8576DE; --b4:#5B4BC4; --b5:#352A80;
+}
+.thema-wahl{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:6px 0 18px}
+.thema-wahl button{appearance:none;border:1.5px solid var(--linie);background:var(--karte);border-radius:16px;padding:12px;font:inherit;font-weight:600;color:var(--tinte);display:flex;align-items:center;gap:10px;cursor:pointer;text-align:left}
+.thema-wahl button.an{border-color:var(--pflaume);box-shadow:inset 0 0 0 1px var(--pflaume)}
+.thema-wahl i{width:28px;height:28px;border-radius:50%;flex:none}
 </style>
 </head>
 <body>
@@ -968,11 +990,31 @@ function bindeReiter(){
   if($("#konto")) $("#konto").onclick = zeigeKonto;
   bindeSyncInfo();
 }
+const THEMEN = {
+  pflaume:{name:"Pflaume", vorschau:"linear-gradient(160deg,#A93AA4,#7A1F78)", hg:"#F6F0FA"},
+  beere:{name:"Beere", vorschau:"linear-gradient(160deg,#D2467E,#96214F)", hg:"#FBF1F4"},
+  salbei:{name:"Salbei", vorschau:"linear-gradient(160deg,#3F9468,#23613F)", hg:"#EFF4EE"},
+  lavendel:{name:"Lavendel", vorschau:"linear-gradient(160deg,#7062DA,#4636A6)", hg:"#F3F2FB"}
+};
+function aktuellesThema(){ const t = lies("trainings_thema"); return THEMEN[t] ? t : "pflaume"; }
+function setzeThema(t){
+  if(t) schreib("trainings_thema", t);
+  const k = aktuellesThema();
+  if(k==="pflaume") document.documentElement.removeAttribute("data-thema"); else document.documentElement.dataset.thema = k;
+  const m = document.querySelector('meta[name="theme-color"]'); if(m) m.content = THEMEN[k].hg;
+}
+setzeThema();
 function zeigeKonto(){
   const st = standText();
   const s = sheet(`<div class="sheet-kopf"><div><h2>${esc(nutzerName() || "Konto")}</h2></div><button class="sheet-zu" aria-label="Schließen">×</button></div>
+    <div class="augenbraue" style="margin:4px 0 8px">Farbschema</div>
+    <div class="thema-wahl">${Object.entries(THEMEN).map(([k, t]) => `<button data-thema="${k}" class="${aktuellesThema()===k ? "an" : ""}"><i style="background:${t.vorschau}"></i>${t.name}</button>`).join("")}</div>
     <p class="klein-grau" style="margin:0 0 16px">${st ? "Daten zuletzt von Garmin geholt: " + esc(st) + "." : ""}</p>
     <button class="knopf hell voll" id="token-weg">Token auf diesem Gerät entfernen</button>`);
+  s.querySelectorAll("[data-thema]").forEach(b => b.onclick = () => {
+    setzeThema(b.dataset.thema);
+    s.querySelectorAll("[data-thema]").forEach(x => x.classList.toggle("an", x===b));
+  });
   s.querySelector(".sheet-zu").onclick = schliesseSheet;
   s.querySelector("#token-weg").onclick = () => { if(confirm("Token auf diesem Gerät entfernen?")){ schliesseSheet(); schreib(TOKEN_KEY, null); zeigeEinrichtung(); } };
 }
@@ -2901,7 +2943,7 @@ function readinessKarte(){
 
 
 // ---------- Saison: grober Plan bis zum Wettkampf (aus einstellungen.json → saison) ----------
-const BLOCK_FARBEN = ["#EBCDE9","#D79BD3","#B85CB3","#8E2A8B","#5C1559"];
+const BLOCK_FARBEN = ["var(--b1)","var(--b2)","var(--b3)","var(--b4)","var(--b5)"];
 let saisonWahl = null;
 function saisonWochen(){
   const sa = zustand.einstellungen.saison || {}, bl = sa.bloecke || [];
