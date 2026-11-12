@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light only">
-<meta name="theme-color" content="#F3F1EC">
+<meta name="theme-color" content="#F6F0FA">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Training">
@@ -240,6 +240,8 @@ ul.punkte li{margin:3px 0}
 .s-balken{display:flex;gap:2px;height:30px;border-radius:8px;overflow:hidden}
 .s-block{display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700}
 .s-block:nth-child(-n+2){color:var(--tinte)}
+.s-woche .ic{margin:auto}
+.s-woche{color:var(--t,#fff)}
 .s-heute{position:absolute;top:-6px;bottom:-6px;width:0;border-left:2px solid var(--tinte)}
 .s-heute span{position:absolute;top:-17px;left:-14px;font-size:11px;font-weight:700}
 .s-balken-daten{display:flex;justify-content:space-between;font-size:12px;color:var(--grau);margin-top:6px}
@@ -254,8 +256,8 @@ ul.punkte li{margin:3px 0}
 .s-woche.vorbei{opacity:.45}
 .s-woche.heute{outline:2px solid var(--tinte);outline-offset:1px}
 .s-woche.gewaehlt{box-shadow:0 0 0 3px var(--gelb)}
-.s-leg-entl{background:repeating-linear-gradient(135deg,#3B78BC 0 3px,#fff 3px 5px)!important}
-.s-leg-taper{background:#fff!important;border:2px solid #13305A;box-sizing:border-box}
+.s-leg-entl{background:repeating-linear-gradient(135deg,#B85CB3 0 3px,#fff 3px 5px)!important}
+.s-leg-taper{background:#fff!important;border:2px solid #5C1559;box-sizing:border-box}
 .s-info{background:var(--feld);border-radius:12px;padding:10px 12px;font-size:13.5px;margin-top:12px;line-height:1.45}
 .s-karten{display:grid;gap:0}
 .s-karte summary{list-style:none;cursor:pointer}
@@ -359,8 +361,8 @@ ul.punkte li{margin:3px 0}
 @keyframes aufleuchten{0%{background:#FFF3C4}100%{background:transparent}}
 
 /* Bottom-Sheet */
-#sheet{position:fixed;inset:0;z-index:20}
-.sheet-hg{position:absolute;inset:0;background:rgba(29,28,26,.35)}
+#sheet{position:fixed;inset:0;z-index:45}
+.sheet-hg{position:absolute;inset:0;background:rgba(42,22,51,.38)}
 .sheet{position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;background:var(--karte);border-radius:20px 20px 0 0;
   padding:20px 20px calc(env(safe-area-inset-bottom) + 20px);max-width:560px;margin:0 auto;animation:hoch .18s ease-out}
 @keyframes hoch{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
@@ -405,6 +407,200 @@ ul.punkte li{margin:3px 0}
   .d-werte{grid-template-columns:repeat(3,minmax(0,1fr))}
   .sheet{bottom:auto;top:50%;transform:translateY(-50%);border-radius:20px;animation:none;max-width:520px}
 }
+
+/* =====================================================================
+   Design 2026 „Pflaume“: Instrument Serif/Sans, kräftiges Beeren-Violett,
+   Navigation unten, weniger Kästen. Überschreibt die Grundwerte oben.
+   ===================================================================== */
+@font-face{font-family:"Instrument Sans";src:url(fonts/InstrumentSans.woff) format("woff");font-weight:400 700;font-stretch:75% 100%;font-display:swap}
+@font-face{font-family:"Instrument Serif";src:url(fonts/InstrumentSerif.woff) format("woff");font-weight:400;font-display:swap}
+:root{
+  --hg:#F6F0FA; --karte:#FFFFFF; --tinte:#2A1633; --grau:#76658A; --hell:#A896B8; --linie:#EADFF2; --spur:#F1E8F6; --feld:#F9F5FC;
+  --pflaume:#8E2A8B; --pflaume-d:#7A1F78; --pflaume-t:#F6DDF3; --pflaume-v:linear-gradient(160deg,#A93AA4,#7A1F78);
+  --gruen:#14A06B; --gruen-t:#E1F5EC; --gelb:#E39A00; --gelb-t:#FFF2D6; --rot:#E0365F; --rot-t:#FDE6EC;
+  --blau:var(--pflaume); --radius:22px;
+  --schrift:"Instrument Sans",system-ui,-apple-system,sans-serif; --serif:"Instrument Serif",Georgia,serif;
+}
+html,body{font-family:var(--schrift);font-feature-settings:"tnum" 1;-webkit-font-smoothing:antialiased;color:var(--tinte)}
+body{padding:calc(env(safe-area-inset-top) + 14px) 20px calc(env(safe-area-inset-bottom) + 104px)}
+h1{font-family:var(--serif);font-weight:400;font-size:40px;line-height:1.05;letter-spacing:-.01em;margin:22px 0 18px}
+h2{font-weight:650}
+.augenbraue{font-size:15px;font-weight:650;letter-spacing:-.005em;text-transform:none;color:var(--tinte)}
+.karte{border-radius:var(--radius);padding:20px;box-shadow:none}
+.leer,.klein-grau{color:var(--grau)}
+.pille{font-size:12.5px;font-weight:600;padding:3px 10px}
+.p-gelb{color:#A86F00}
+.knopf{background:var(--pflaume);border-radius:14px;font-weight:600}
+.knopf.hell{background:var(--pflaume-t);color:var(--pflaume-d)}
+.knopf.klein{border-radius:11px}
+.link,.zurueck,.d-mehr summary{color:var(--pflaume)}
+.segment button.an{background:var(--pflaume)}
+input[type=range]{accent-color:var(--pflaume)}
+.saetze input:focus{border-color:var(--pflaume)}
+.haken input:checked+.box{background:var(--pflaume);border-color:var(--pflaume)}
+.leiste{background:linear-gradient(to top,var(--hg) 70%,rgba(246,240,250,0))}
+.fehler{color:#A3123A}
+.t-gruen{color:var(--gruen)} .t-gelb{color:#B57A00} .t-rot{color:var(--rot)}
+.ic{display:block;flex:none}
+/* Kopfzeile */
+.app-kopf{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--grau);font-size:14.5px}
+.app-kopf-r{display:flex;gap:10px;align-items:center}
+.rund{appearance:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--linie);background:var(--karte);color:var(--tinte);cursor:pointer;padding:0;font:inherit}
+.rund.ich{background:var(--pflaume-v);color:#fff;border:0;font-weight:650;font-size:15px}
+.rund.laeuft .ic{animation:dreh 1s linear infinite}
+.rund:disabled{cursor:default}
+.sync-zeile{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;margin-top:12px;padding:11px 14px;border-radius:14px;background:var(--karte);font:inherit;font-size:14px;color:var(--grau);border:0;text-align:left}
+.sync-zeile.neu{background:var(--pflaume-t);color:var(--pflaume-d);font-weight:600;cursor:pointer}
+.sync-zeile span{display:flex;align-items:center;gap:2px;white-space:nowrap}
+/* Navigation: unten wie eine App, auf breiten Bildschirmen oben */
+.reiter{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:0;padding:9px 8px calc(env(safe-area-inset-bottom) + 10px);
+  background:rgba(255,255,255,.93);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--linie);border-radius:0}
+.reiter button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--hell);background:none;border-radius:0;padding:2px 0;box-shadow:none}
+.reiter button.an{color:var(--pflaume);background:none;box-shadow:none}
+/* Startseite */
+.gruss{margin-bottom:10px}
+.gruss-text{color:var(--grau);font-size:16px;margin:0 0 26px;max-width:34ch}
+.form{appearance:none;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%;padding:0 0 22px;
+  display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:end;border-bottom:1px solid var(--linie)}
+.form-zahl{font-family:var(--serif);font-size:84px;line-height:.8;letter-spacing:-.02em}
+.form-zahl small{display:block;font-family:var(--schrift);font-size:13px;color:var(--grau);letter-spacing:0;line-height:1.3;margin-top:12px}
+.form-zahl small b{font-weight:650}
+.signale{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;height:98px;position:relative}
+.signale::before{content:"";position:absolute;left:0;right:0;bottom:calc(22px + 37px);border-top:1px dashed var(--hell)}
+.signale::after{content:"dein Schnitt";position:absolute;right:0;bottom:calc(22px + 39px);font-size:10.5px;color:var(--hell)}
+.sig{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;min-width:0}
+.sig i{display:block;width:100%;max-width:26px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#B84FB3,#8E2A8B)}
+.sig i.tief{background:linear-gradient(180deg,#FF7A97,#E0365F)}
+.sig span{font-size:11.5px;line-height:16px;color:var(--grau);white-space:nowrap}
+#form-mehr .zs{border-top:0;margin-top:0;padding-top:4px}
+#form-mehr .zs summary{display:none}
+#form-mehr{border-bottom:1px solid var(--linie);padding-bottom:14px}
+.checkin-zeile{appearance:none;border:0;background:none;font:inherit;width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:15px 0;border-bottom:1px solid var(--linie);color:var(--grau);font-size:14.5px;text-align:left;cursor:pointer}
+.checkin-zeile b{color:var(--tinte);font-weight:600}
+.checkin-aufruf{display:flex;justify-content:space-between;align-items:center;gap:14px;background:var(--karte);border-radius:var(--radius);padding:18px;margin-top:18px}
+.hinweise{padding:14px 0 4px;font-size:14px;color:var(--grau)}
+.hinweise p{margin:0 0 8px}
+.hinweise .knopf{margin-top:4px}
+.abschnitt{font-size:13.5px;font-weight:600;color:var(--grau);margin:30px 0 12px}
+.e-notiz{font-size:13.5px;color:var(--grau);margin:2px 0 8px 36px}
+.einheit{background:var(--karte);border-radius:var(--radius);padding:18px 18px 10px;margin:0 0 12px}
+.einheit+.einheit{margin-top:0}
+.e-kopf{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding-bottom:6px}
+.sport{width:44px;height:44px;border-radius:14px;background:var(--pflaume-t);color:var(--pflaume);display:grid;place-items:center}
+.e-titel{font-size:18px;font-weight:650;letter-spacing:-.01em;line-height:1.25}
+.e-meta{font-size:13.5px;color:var(--grau);text-transform:none}
+.e-dauer{font-family:var(--serif);font-size:27px;line-height:1;white-space:nowrap}
+.e-dauer small{font-family:var(--schrift);font-size:12px;color:var(--grau);margin-left:3px}
+.umschalter{display:grid;grid-template-columns:1fr 1fr;background:var(--hg);border-radius:13px;padding:3px;margin:12px 0 4px}
+.umschalter button{appearance:none;border:0;background:none;font:inherit;font-size:14px;padding:8px;border-radius:10px;color:var(--grau);font-weight:500;cursor:pointer}
+.umschalter button.an{background:var(--karte);color:var(--tinte);font-weight:650;box-shadow:0 1px 3px rgba(42,22,51,.1)}
+.e-hinweis{font-size:13.5px;color:var(--grau);margin:10px 2px 2px}
+.e-hinweis b{font-weight:650}
+.e-text{font-size:15px;margin:10px 0 8px}
+ul.schritte{list-style:none;padding:0;margin:4px 0 0}
+ul.schritte li{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--linie);font-size:15.5px;line-height:1.35}
+ul.schritte li:first-child{border-top:0}
+.kreis{appearance:none;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--hell);background:none;flex:none;display:grid;place-items:center;color:transparent;cursor:pointer;padding:0}
+.kreis.an{background:var(--pflaume);border-color:var(--pflaume);color:#fff}
+.kreis.an+span{color:var(--hell);text-decoration:line-through;text-decoration-color:var(--linie)}
+.e-fuss{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;padding:12px 0 6px;border-top:1px solid var(--linie);font-size:13.5px;color:var(--grau)}
+.e-log{margin:8px 0 8px}
+.einheit .knopf{margin-left:0}
+.e-fertig{appearance:none;border:0;background:var(--gruen-t);border-radius:14px;width:100%;display:flex;align-items:center;gap:10px;padding:11px 12px;margin:10px 0 8px;font:inherit;font-size:14.5px;font-weight:600;color:var(--tinte);text-align:left;cursor:pointer}
+.e-fertig>span:nth-child(2){flex:1}
+.e-fertig .ic:last-child{color:var(--grau)}
+.ok-kreis{width:24px;height:24px;border-radius:50%;background:var(--gruen);color:#fff;display:grid;place-items:center;flex:none}
+.einheit.ruhe-heute{display:flex;gap:14px;align-items:center;padding:18px}
+.woche{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.w-tag{appearance:none;border:0;background:none;font:inherit;color:var(--tinte);display:flex;flex-direction:column;align-items:center;padding:10px 0 12px;border-radius:16px;cursor:pointer}
+.w-tag .wt{font-size:12px;color:var(--grau)}
+.w-tag .dt{font-size:17px;font-weight:650;margin:2px 0 8px}
+.w-tag.heute{background:var(--pflaume-v);color:#fff;box-shadow:0 8px 18px -8px rgba(142,42,139,.6)}
+.w-tag.heute .wt{color:#EBD3EA}
+.w-tag.vorbei{color:var(--hell)}
+.w-punkte{display:flex;justify-content:center;gap:3px;height:6px}
+.w-punkte i{width:6px;height:6px;border-radius:50%;background:var(--pflaume)}
+.w-punkte i.ok{background:var(--gruen)}
+.w-punkte i.leer{background:none;box-shadow:inset 0 0 0 1.5px var(--hell)}
+.w-tag.heute .w-punkte i{background:#fff}
+.w-tag.heute .w-punkte i.ok{background:#9FF0CE}
+.naechste{margin-top:10px}
+.n-zeile{appearance:none;border:0;background:none;font:inherit;color:var(--tinte);width:100%;display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 2px;border-top:1px solid var(--linie);text-align:left;cursor:pointer;font-size:15px}
+.n-ic{color:var(--pflaume)}
+.n-wann{color:var(--grau);font-size:14px;white-space:nowrap}
+.planen-hinweis{margin-top:18px}
+:focus-visible{outline:2px solid var(--pflaume);outline-offset:2px;border-radius:8px}
+@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+@media (min-width: 900px){
+  body{padding-bottom:40px}
+  h1{font-size:46px}
+  .reiter{position:static;display:flex;gap:6px;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border:0;padding:0;margin:18px 0 6px}
+  .reiter button{flex-direction:row;gap:8px;font-size:15px;color:var(--grau);padding:8px 14px;border-radius:12px}
+  .reiter button .ic{width:19px;height:19px}
+  .reiter button.an{background:var(--karte);color:var(--pflaume)}
+  .heute-raster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"form training" "woche training";column-gap:56px;align-items:start}
+  .h-form{grid-area:form} .h-training{grid-area:training} .h-woche{grid-area:woche}
+  .h-training>.abschnitt:first-child{margin-top:34px}
+}
+
+/* Design 2026: übrige Seiten */
+.sp-ic{display:inline-grid;place-items:center;color:var(--pflaume);flex:none}
+.mit-ic{display:inline-flex;align-items:center;gap:6px}
+.mit-ic .ic{color:var(--pflaume)}
+.s-info .ic{display:inline-block;vertical-align:-2px;color:var(--pflaume)}
+.c-legende .ic{display:inline-block;vertical-align:-2px}
+/* Kalender */
+.k-nav{margin-top:18px}
+.k-nav h1{font-size:40px}
+.k-nav .knopf.hell{background:var(--karte);color:var(--tinte);border:1px solid var(--linie)}
+.k-tag{background:none;border-radius:0;padding:14px 0 6px;border-top:1px solid var(--linie)}
+.k-tag:first-child{border-top:0}
+.k-kopf{text-transform:none;letter-spacing:0;font-size:14px;font-weight:600;color:var(--grau)}
+.k-tag.heute .k-kopf span{color:var(--pflaume)}
+.k-tag.vorbei{opacity:1}
+.k-tag.vorbei .k-titel{color:var(--grau)}
+.k-plus{background:var(--karte);border:1px solid var(--linie);color:var(--grau);border-radius:10px}
+.k-einheit{background:var(--karte);border-radius:16px;padding:12px 14px;gap:12px}
+.k-einheit .sp-ic{width:34px;height:34px;border-radius:11px;background:var(--pflaume-t)}
+.k-einheit .pille{background:none!important;padding:0;font-size:12.5px;font-weight:600}
+.k-einheit.fertig{background:var(--karte)}
+.k-einheit.fertig .sp-ic{background:var(--gruen-t);color:var(--gruen)}
+.k-einheit.gewaehlt,.k-akt.gewaehlt{box-shadow:inset 0 0 0 2px var(--pflaume)}
+.k-akt .sp-ic{width:34px;height:34px;border-radius:11px;background:var(--gruen-t);color:var(--gruen)}
+.k-ruhe{background:none;border:1px dashed var(--linie);color:var(--grau)}
+.karte.detail{margin-top:8px}
+.detail h2{font-family:var(--serif);font-weight:400;font-size:32px;letter-spacing:0}
+.detail h2 .sp-ic{width:40px;height:40px;border-radius:13px;background:var(--pflaume-t)}
+.d-verlauf span{background:var(--pflaume-t);color:var(--pflaume-d)}
+.d-variante{border-left-width:3px;background:var(--feld)}
+.d-abschnitt .augenbraue{font-size:14px;color:var(--grau)}
+.einordnung{background:var(--feld)}
+/* Fortschritt & Saison */
+.f-countdown b,.tr-zahl b,.f-kacheln b,.f-titel{font-family:var(--serif);font-weight:400}
+.tr-zahl b{font-size:64px;letter-spacing:-.01em}
+.f-countdown b{font-size:30px}
+.f-titel{font-size:26px}
+.f-kacheln div{background:var(--feld)}
+.f-kacheln b{font-size:30px}
+.f-punkt{border-color:var(--pflaume)} .f-punkt.ok{background:var(--pflaume)}
+.c-ziel{border-top-color:var(--pflaume)}
+.s-karte.aktiv{box-shadow:inset 0 0 0 2px var(--pflaume)}
+.s-woche.gewaehlt{box-shadow:0 0 0 3px var(--gelb)}
+.s-woche.heute{outline-color:var(--tinte)}
+.s-chips span{background:var(--pflaume-t);color:var(--pflaume-d)}
+.s-info{background:var(--feld)}
+.wp-chip .sp-ic{margin-right:4px}
+@media (min-width: 900px){
+  .k-tag{background:var(--karte);border-radius:16px;border:0;padding:10px}
+  .k-einheit{background:var(--feld);padding:9px 10px;grid-template-columns:28px minmax(0,1fr)}
+  .k-einheit .sp-ic{width:28px;height:28px}
+}
+
+.wp-tag-name{text-transform:none;letter-spacing:0;font-size:14px;font-weight:650}
+.segment[data-mehr] button,.segment.text button{white-space:normal;line-height:1.25;font-size:13.5px;padding:11px 6px}
+.segment[data-mehr]{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sheet{padding-bottom:calc(env(safe-area-inset-bottom) + 20px)}
 </style>
 </head>
 <body>
@@ -612,41 +808,7 @@ function planenKarte(){
     <div style="margin-top:6px">Zeit, die nächste Woche zu planen.</div></div>
     <button class="knopf" id="zur-planung">Planen</button></div>`;
 }
-function checkinKarte(t){
-  const c = t.checkin;
-  if(!c) return `<div class="karte checkin-start"><div><span class="augenbraue">Morgen-Check-in</span>
-      <div style="margin-top:6px">Wie fühlst du dich heute?</div></div>
-      <button class="knopf" id="zum-checkin">Check-in</button></div>`;
-  const teile = ["Energie " + c.energie + "/5", "Knie " + (c.knie ?? 0), "Hüfte " + (c.huefte ?? 0)];
-  if(c.infekt && c.infekt!=="nein") teile.push("Infekt");
-  (c.schnell||[]).forEach(k => teile.push(SCHNELL[k]));
-  return `<div class="karte"><div class="checkin-zeile"><span><b style="color:var(--tinte)">Check-in:</b> ${esc(teile.join(" · "))}</span>
-    <button class="link" id="zum-checkin">Ändern</button></div></div>`;
-}
 
-function ampelKarte(t){
-  if(!t.farbe) return `<div class="karte"><span class="augenbraue">Bereitschaft</span><div class="leer">Der Morgenbericht für heute ist noch nicht da – er kommt, sobald deine Uhr den Schlaf synchronisiert hat.</div></div>`;
-  const a = AMPEL[t.farbe];
-  const angepasst = t.garmin && t.farbe!==t.garmin;
-  const kopf = t.score!==null
-    ? `<span class="score">${t.score}</span><span class="von">/ 100</span>`
-    : `<span class="score" style="font-size:32px;line-height:40px">Check-in</span>`;
-  const anpassung = (t.gruende.length || t.hinweise.length)
-    ? `<ul class="anpassung" style="padding-left:18px;margin-bottom:0">${
-        (angepasst ? [`Durch deinen Check-in von ${AMPEL[t.garmin].wort} auf ${a.wort} ${t.angehoben ? "angehoben" : "gesenkt"}: ${t.gruende.join(", ")}.`]
-          : t.gruende.length ? [`Dein Check-in bestätigt ${a.wort}: ${t.gruende.join(", ")}.`] : [])
-        .concat(t.hinweise).map(h => `<li>${esc(h)}</li>`).join("")}</ul>` : "";
-  return `<div class="karte">
-    <span class="augenbraue">Bereitschaft heute</span>
-    <div class="score-zeile">${kopf}<span class="pille ${a.klasse}">● ${a.wort}</span></div>
-    <div class="rat">${esc(RAT[t.farbe])}</div>${anpassung}
-    ${t.score!==null ? `<div class="spur"><i style="width:${Math.max(0,Math.min(100,t.score))}%;background:${AMPEL[t.garmin].farbe}"></i></div>` : ""}
-    ${angepasst ? `<div class="werte-zeile">Garmin-Werte allein: ${t.score} · ${AMPEL[t.garmin].wort}</div>` : ""}
-    ${t.anhebenMoeglich && !t.angehoben ? `<button class="knopf hell fit-knopf" id="fit-knopf">Ich fühle mich gut – ${t.farbe==="gelb" ? "normal trainieren" : "auf Gelb anheben"}</button>` : ""}
-    ${t.angehoben ? `<button class="link" id="fit-zurueck" style="margin-top:8px">Doch nicht – zurück auf ${AMPEL[t.garmin].wort}</button>` : ""}
-    ${zusammensetzung()}
-  </div>`;
-}
 // Gefühl „fit“ direkt von der Startseite setzen oder zurücknehmen
 async function setzeFit(an){
   const c = checkinHeute(); if(!c) return;
@@ -735,6 +897,7 @@ async function waehleVariante(id, variante){
 // Ein Klick-Handler für alle „Variante wählen“-Knöpfe, egal in welcher Ansicht
 document.addEventListener("click", ev => {
   const b = ev.target.closest("[data-wahl]"); if(!b) return;
+  if(b.classList.contains("an")){ ev.preventDefault(); return; }
   ev.stopPropagation(); ev.preventDefault(); waehleVariante(b.dataset.id, b.dataset.wahl || null);
 }, true);
 function wahlKnopf(e, h){
@@ -746,54 +909,259 @@ function varianteHtml(h, stil=""){
   return `<div class="variante" style="${stil}background:${AMPEL[h.farbe].tint}"><b>${esc(h.label)}</b> ${inhalt(h.text)}</div>`;
 }
 
-function einheitHtml(e, istHeute){
-  const farbe = SPORT_FARBEN[e.sport] || "#BDB7AD";
-  const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "");
-  const pille = e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : "";
-  // Heute die volle Liste; kommende Tage ohne Details (die stehen im Kalender)
-  let unten = e.details && istHeute ? `<div class="einheit-details">${inhalt(e.details)}</div>` : "";
-  const h = istHeute ? heuteFuer(e, tagesAmpel()) : null;
-  if(h) unten = varianteHtml(h) + wahlKnopf(e, h);
-  const kraftArt = e.art && zustand.uebungen[e.art] ? e.art : null;
-  const log = kraftArt && zustand.kraft.find(k => k.datum===e.datum && k.einheit===kraftArt);
-  const knopf = kraftArt && e.datum<=HEUTE
-    ? `<button class="knopf klein ${log ? "hell" : ""}" data-log="${esc(e.id)}">${log ? "Eintrag ansehen" : "Training eintragen"}</button>` : "";
-  return `<div class="einheit">
-    <div class="einheit-kopf"><span class="punkt" style="background:${farbe}"></span>
-      <span class="einheit-titel">${esc(e.titel)}</span>
-      <span class="einheit-meta">${esc(umfang)}${pille}</span></div>
-    ${unten}${knopf}</div>`;
+
+// ---------- Symbole (einheitliche Linien-Icons statt Emojis und Farbpunkten) ----------
+const ICONS = {
+  schwimmen:'<circle cx="16.5" cy="6.5" r="1.8"/><path d="M6 12.5l4.5-3.5 3 2.5 3-1.5"/><path d="M2 16.5c1.7 0 1.7-1.3 3.3-1.3s1.7 1.3 3.4 1.3 1.6-1.3 3.3-1.3 1.7 1.3 3.3 1.3 1.7-1.3 3.4-1.3 1.6 1.3 3.3 1.3"/><path d="M2 20.5c1.7 0 1.7-1.3 3.3-1.3s1.7 1.3 3.4 1.3 1.6-1.3 3.3-1.3 1.7 1.3 3.3 1.3 1.7-1.3 3.4-1.3 1.6 1.3 3.3 1.3"/>',
+  rad:'<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5L9.5 9h6.5l2.5 7.5M9.5 9l3 7.5h2M14 5.5h2.5l-.5 3.5"/>',
+  laufen:'<circle cx="14" cy="4.5" r="1.8"/><path d="M8 21l3-6 3 2v4M6 12l3-3 4 1 2 3 3 1M11 15l2-5"/>',
+  kraft:'<path d="M6 8v8M3.5 10v4M18 8v8M20.5 10v4M6 12h12"/>',
+  mobilitaet:'<circle cx="12" cy="4.8" r="1.8"/><path d="M4 11.5c2.7-.8 5.3-1.5 8-1.5s5.3.7 8 1.5M12 10v5M7.5 21l4.5-6 4.5 6"/>',
+  sonstiges:'<circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2"/>',
+  sync:'<path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/>',
+  heute:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  kalender:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  fortschritt:'<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
+  saison:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  test:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 15h9"/>',
+  ziel:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  haken:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  pfeil:'<path d="M9 6l6 6-6 6"/>'
+};
+function sportIc(sp, groesse=18){ return `<span class="sp-ic">${icon(ICONS[sp] ? sp : "sonstiges", groesse)}</span>`; }
+function icon(name, groesse=24, staerke=1.8){
+  return `<svg class="ic" width="${groesse}" height="${groesse}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${staerke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ICONS.sonstiges}</svg>`;
+}
+const MONATE_LANG = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const TAGE_LANG = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+function datumLang(iso){ const d = new Date(iso+"T12:00:00"); return `${TAGE_LANG[d.getDay()]}, ${d.getDate()}. ${MONATE_LANG[d.getMonth()]}`; }
+function nutzerName(){ return (zustand.einstellungen && zustand.einstellungen.name) || ""; }
+
+// ---------- Kopfzeile + Navigation (unten auf dem Handy, oben auf dem Laptop) ----------
+function reiter(aktiv){
+  zustand.ansicht = aktiv;
+  const name = nutzerName();
+  const tabs = [["heute","Heute"],["kalender","Kalender"],["fortschritt","Fortschritt"],["saison","Saison"]];
+  return `<header class="app-kopf"><span class="app-datum">${datumLang(HEUTE)}</span>
+      <div class="app-kopf-r">
+        <button class="rund ${sync.laeuft?"laeuft":""}" id="sync" title="Trainings von Garmin laden" aria-label="Trainings von Garmin laden">${icon("sync", 18, 2)}</button>
+        ${name ? `<button class="rund ich" id="konto" aria-label="Konto">${esc(name[0].toUpperCase())}</button>` : ""}
+      </div></header>
+    <div id="sync-info">${syncInfo()}</div>
+    <nav class="reiter">${tabs.map(([k, l]) => `<button data-reiter="${k}" class="${aktiv===k?"an":""}" ${aktiv===k?'aria-current="page"':""}>${icon(k, 24)}<span>${l}</span></button>`).join("")}</nav>`;
+}
+function bindeReiter(){
+  document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => ({kalender:zeigeKalender, fortschritt:zeigeFortschritt, saison:zeigeSaison}[b.dataset.reiter] || zeigeHeute)());
+  if($("#sync")) $("#sync").onclick = holeTrainings;
+  if($("#konto")) $("#konto").onclick = zeigeKonto;
+  bindeSyncInfo();
+}
+function zeigeKonto(){
+  const st = standText();
+  const s = sheet(`<div class="sheet-kopf"><div><h2>${esc(nutzerName() || "Konto")}</h2></div><button class="sheet-zu" aria-label="Schließen">×</button></div>
+    <p class="klein-grau" style="margin:0 0 16px">${st ? "Daten zuletzt von Garmin geholt: " + esc(st) + "." : ""}</p>
+    <button class="knopf hell voll" id="token-weg">Token auf diesem Gerät entfernen</button>`);
+  s.querySelector(".sheet-zu").onclick = schliesseSheet;
+  s.querySelector("#token-weg").onclick = () => { if(confirm("Token auf diesem Gerät entfernen?")){ schliesseSheet(); schreib(TOKEN_KEY, null); zeigeEinrichtung(); } };
 }
 
+// ---------- Trainings jetzt von Garmin holen (startet den Abruf auf GitHub) ----------
+const sync = {laeuft:false, text:"", neu:[]};
+function standText(){
+  const s = (zustand.status || {}).letzter_abruf;
+  if(!s) return "";
+  const [d, z] = s.split(" ");
+  return d===HEUTE ? "heute " + z : d===plusTage(HEUTE,-1) ? "gestern " + z : d.slice(8,10)+"."+d.slice(5,7)+". " + z;
+}
+function syncInfo(){
+  if(sync.laeuft) return `<div class="sync-zeile">${esc(sync.text || "Hole Trainings von Garmin …")}</div>`;
+  if(sync.neu.length) return `<button class="sync-zeile neu" id="sync-neu">${esc(sync.text)}<span>Ansehen ${icon("pfeil", 16, 2.2)}</span></button>`;
+  if(sync.text) return `<div class="sync-zeile">${esc(sync.text)}</div>`;
+  return "";
+}
+function bindeSyncInfo(){ if($("#sync-neu")) $("#sync-neu").onclick = zeigeNeuesTraining; }
+function zeigeSync(){
+  const b = $("#sync"); if(b){ b.classList.toggle("laeuft", sync.laeuft); b.disabled = sync.laeuft; }
+  const i = $("#sync-info"); if(i){ i.innerHTML = syncInfo(); bindeSyncInfo(); }
+}
+
+// ---------- Startseite ----------
+// Liegt ein Signal unter (bzw. beim Ruhepuls über) deinem Schnitt?
+function signalSchlechter(s){ if(!s || !s.schnitt) return false; return s.hoeher_besser===false ? s.wert > s.schnitt : s.wert < s.schnitt; }
+// Höhe der Säule: 50 = dein Schnitt
+function signalHoehe(k, s){
+  if(typeof s.teilwert==="number" && (k==="hrv" || k==="ruhepuls")) return Math.max(6, Math.min(100, s.teilwert));
+  if(!s.schnitt) return 50;
+  let r = s.wert / s.schnitt; if(s.hoeher_besser===false) r = 2 - r;
+  return Math.max(6, Math.min(100, 50 * r));
+}
+const SIGNAL_KURZ = {hrv:"HRV", ruhepuls:"Ruhepuls", schlaf:"Schlaf", body_battery:"Batterie"};
+function begruessung(t){
+  const name = nutzerName(), komma = name ? ", " + name : "";
+  const b = zustand.bericht;
+  const std = new Date().getHours(), hallo = std < 11 ? "Guten Morgen" : std < 18 ? "Hallo" : "Guten Abend";
+  if(!t.farbe) return {titel:`${hallo}${komma}.`, text:"Deine Tagesform kommt, sobald deine Uhr den Schlaf synchronisiert hat."};
+  const sig = b && b.signale ? Object.values(b.signale) : [];
+  const unter = sig.filter(signalSchlechter).length;
+  const zahlwort = ["keiner","einer","zwei","drei","vier"];
+  const werte = !sig.length ? "" : unter===sig.length ? `Alle ${zahlwort[sig.length] || sig.length} Werte liegen unter deinem Schnitt`
+    : unter===0 ? "Alle Werte liegen auf oder über deinem Schnitt"
+    : `${(zahlwort[unter] || String(unter)).replace(/^./, c => c.toUpperCase())} von ${zahlwort[sig.length] || sig.length} Werten ${unter===1 ? "liegt" : "liegen"} unter deinem Schnitt`;
+  if(t.angehoben) return {titel: t.farbe==="gruen" ? `Heute darfst du trainieren${komma}.` : `Heute mit Maß${komma}.`,
+    text:`Garmin war vorsichtiger, aber du fühlst dich fit – deshalb ${t.farbe==="gruen" ? "volles Training" : "die mittlere Variante"}. Hör beim Aufwärmen in dich rein.`};
+  if(t.farbe==="gruen") return {titel:`Heute darfst du Gas geben${komma}.`, text:(werte ? werte + " – " : "") + "dein Training läuft wie geplant."};
+  if(t.farbe==="gelb") return {titel:`Heute mit Maß${komma}.`, text:(werte ? werte + " – " : "") + "lieber etwas weniger Umfang oder Intensität."};
+  return {titel:`Heute eher ruhig${komma}.`, text:(werte ? werte + " – " : "") + "dein Körper erholt sich noch."};
+}
+function tagesformHtml(t){
+  const b = zustand.bericht;
+  if(!t.farbe) return "";
+  const a = AMPEL[t.farbe];
+  const saeulen = b && b.signale ? Object.entries(b.signale).map(([k, s]) =>
+    `<div class="sig"><i class="${signalSchlechter(s) ? "tief" : ""}" style="height:${signalHoehe(k, s) * 0.74}px"></i><span>${esc(SIGNAL_KURZ[k] || s.name)}</span></div>`).join("") : "";
+  const angehoben = t.angehoben ? ` <span class="klein-grau">(Garmin: ${AMPEL[t.garmin].wort})</span>` : "";
+  const gesenkt = t.garmin && t.farbe!==t.garmin && !t.angehoben ? ` <span class="klein-grau">(Garmin: ${AMPEL[t.garmin].wort})</span>` : "";
+  return `<button class="form" id="form-auf" aria-expanded="false" aria-controls="form-mehr">
+      <div class="form-zahl">${t.score ?? "–"}<small>Tagesform · <b class="t-${t.farbe}">${a.wort}</b>${angehoben}${gesenkt}</small></div>
+      ${saeulen ? `<div class="signale" aria-hidden="true">${saeulen}</div>` : ""}
+    </button>
+    <div id="form-mehr" hidden>${zusammensetzung()}</div>`;
+}
+function hinweiseHtml(t){
+  const zeilen = [];
+  if(t.garmin && t.farbe!==t.garmin && !t.angehoben) zeilen.push(`Durch deinen Check-in auf ${AMPEL[t.farbe].wort} gesenkt: ${t.gruende.join(", ")}.`);
+  else if(!t.angehoben && t.gruende.length) zeilen.push(`Dein Check-in bestätigt ${AMPEL[t.farbe].wort}: ${t.gruende.join(", ")}.`);
+  zeilen.push(...t.hinweise);
+  const fit = t.anhebenMoeglich && !t.angehoben
+    ? `<button class="knopf hell klein" id="fit-knopf">Ich fühle mich gut – ${t.farbe==="gelb" ? "normal trainieren" : "auf Gelb anheben"}</button>` : "";
+  const zurueck = t.angehoben ? `<button class="link" id="fit-zurueck">Doch nicht – zurück auf ${AMPEL[t.garmin].wort}</button>` : "";
+  if(!zeilen.length && !fit && !zurueck) return "";
+  return `<div class="hinweise">${zeilen.map(z => `<p>${esc(z)}</p>`).join("")}${fit}${zurueck}</div>`;
+}
+function checkinZeile(t){
+  const c = t.checkin;
+  if(!c) return `<div class="checkin-aufruf"><div><b>Wie fühlst du dich heute?</b><div class="klein-grau">Dein Gefühl kann die Ampel senken oder anheben.</div></div>
+    <button class="knopf" id="zum-checkin">Check-in</button></div>`;
+  const teile = ["Energie " + c.energie + " von 5"];
+  if((c.knie ?? 0) > 0) teile.push("Knie " + c.knie + "/10");
+  if((c.huefte ?? 0) > 0) teile.push("Hüfte " + c.huefte + "/10");
+  if(c.infekt && c.infekt!=="nein") teile.push("Infektgefühl");
+  (c.schnell||[]).forEach(k => teile.push(SCHNELL[k].toLowerCase()));
+  return `<button class="checkin-zeile" id="zum-checkin"><span>Check-in: <b>${esc(teile.join(", "))}</b></span><span class="link">Ändern</span></button>`;
+}
+function abgehakt(e){ try{ return JSON.parse(lies("abgehakt_" + e.id + "_" + HEUTE) || "[]"); }catch(err){ return []; } }
+function dauerHtml(e){
+  if(e.dauer_min) return `<div class="e-dauer">${e.dauer_min}<small>min</small></div>`;
+  const m = String(e.umfang || "").match(/(\d+(?:[,–-]\d+)?)\s*(min|km)/);
+  return m ? `<div class="e-dauer">${esc(m[1].replace("-", "–"))}<small>${m[2]}</small></div>` : "";
+}
+function untertitel(e){
+  const teile = [SPORT_NAMEN[e.sport] || ""];
+  if(e.intensitaet) teile.push(e.intensitaet);
+  return teile.filter(Boolean).join(", ");
+}
+function trainingKarte(e, t){
+  const fertig = erledigtDurch(e);
+  const h = heuteFuer(e, t);
+  const kraftArt = e.art && zustand.uebungen[e.art] ? e.art : null;
+  const log = kraftArt && zustand.kraft.find(k => k.datum===e.datum && k.einheit===kraftArt);
+  const kopf = `<div class="e-kopf"><span class="sport s-${e.sport}">${icon(e.sport, 24)}</span>
+      <div><div class="e-titel">${esc(e.titel)}</div><div class="e-meta">${esc(untertitel(e))}</div></div>${dauerHtml(e)}</div>`;
+  if(fertig){
+    const r = einordnung(fertig, e);
+    return `<div class="einheit fertig">${kopf}
+      <button class="e-fertig" data-oeffne="${esc(e.id)}"><span class="ok-kreis">${icon("haken", 16, 2.4)}</span>
+        <span>Erledigt · ${Math.round(fertig.dauer_min)} min<span class="klein-grau"> – ${esc(r.urteil[1])}</span></span>${icon("pfeil", 18, 2)}</button>
+      ${kraftArt ? `<button class="knopf hell klein" data-log="${esc(e.id)}">${log ? "Eintrag ansehen" : "Training eintragen"}</button>` : ""}</div>`;
+  }
+  const text = h ? h.text : e.details;
+  const angepasst = h && !(h.gewaehlt && e.wahl && e.wahl.variante==="normal");
+  const umschalter = h && e.details && (h.gewaehlt || h.text!==e.details)
+    ? `<div class="umschalter" role="group" aria-label="Variante">
+        <button data-wahl="normal" data-id="${esc(e.id)}" class="${!angepasst ? "an" : ""}">Wie geplant</button>
+        <button data-wahl="" data-id="${esc(e.id)}" class="${angepasst ? "an" : ""}">Angepasst</button></div>` : "";
+  const hinweis = h ? (h.gewaehlt && e.wahl.variante==="normal"
+      ? `<p class="e-hinweis">Du trainierst heute wie geplant – trotz ${AMPEL[t.garmin || t.farbe]?.wort || "Ampel"}.</p>`
+      : `<p class="e-hinweis"><b class="t-${h.farbe}">${esc(h.label.replace(/:$/, ""))}</b></p>`) : "";
+  const verschiebeTipp = h && h.farbe==="rot" && Array.isArray(h.text) && h.text.some(x => /verschieben/i.test(x));
+  // „Ca. 20–30 min“ o. ä. ist keine Übung zum Abhaken, sondern ein Hinweis
+  const istNotiz = x => /^(ca\.|insgesamt|gesamt)/i.test(String(x).trim());
+  const roh = Array.isArray(text) ? (verschiebeTipp ? text.filter(x => !/verschieben/i.test(x)) : text) : null;
+  const liste = roh ? roh.filter(x => !istNotiz(x)) : null;
+  const notizen = roh ? roh.filter(istNotiz) : [];
+  const haken = abgehakt(e);
+  const schritte = liste ? `<ul class="schritte" data-schritte="${esc(e.id)}">${liste.map((s, i) =>
+      `<li><button class="kreis ${haken.includes(i) ? "an" : ""}" data-schritt="${i}" aria-label="Abhaken">${icon("haken", 14, 2.6)}</button><span>${esc(s)}</span></li>`).join("")}</ul>${
+      notizen.length ? `<p class="e-notiz">${esc(notizen.join(" · "))}</p>` : ""}`
+    : text ? `<p class="e-text">${esc(text)}</p>` : "";
+  const verschieben = verschiebeTipp
+    ? `<div class="e-fuss"><span>Bei ${AMPEL[h.farbe].wort} empfohlen: verschieben</span><button class="link" data-verschiebe="${esc(e.id)}">Verschieben</button></div>` : "";
+  const kraft = kraftArt ? `<button class="knopf hell klein e-log" data-log="${esc(e.id)}">${log ? "Eintrag ansehen" : "Training eintragen"}</button>` : "";
+  return `<div class="einheit">${kopf}${umschalter}${hinweis}${schritte}${verschieben}${kraft}</div>`;
+}
+function wocheHtml(){
+  const mo = montag(HEUTE);
+  const tage = [...Array(7)].map((_, i) => plusTage(mo, i));
+  const streifen = tage.map(d => {
+    const liste = zustand.plan.filter(e => e.datum===d && e.status!=="gestrichen");
+    const punkte = liste.map(e => `<i class="${erledigtDurch(e) ? "ok" : d < HEUTE ? "leer" : ""}"></i>`).join("");
+    const dt = new Date(d+"T12:00:00");
+    return `<button class="w-tag ${d===HEUTE ? "heute" : d < HEUTE ? "vorbei" : ""}" data-tag="${d}">
+      <span class="wt">${WOCHENTAGE[dt.getDay()]}</span><span class="dt">${dt.getDate()}</span><span class="w-punkte">${punkte}</span></button>`;
+  }).join("");
+  const naechste = zustand.plan.filter(e => e.datum > HEUTE && e.datum <= plusTage(HEUTE, 6) && ["geplant","verschoben"].includes(e.status || "geplant"))
+    .slice(0, 4).map(e => {
+      const wann = e.datum===plusTage(HEUTE, 1) ? "Morgen" : TAGE_LANG[new Date(e.datum+"T12:00:00").getDay()];
+      const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "").replace(/^ca\.\s*/, "");
+      return `<button class="n-zeile" data-oeffne="${esc(e.id)}"><span class="n-ic s-${e.sport}">${icon(e.sport, 18)}</span><span class="n-titel">${esc(e.titel)}</span><span class="n-wann">${esc(wann)}${umfang ? ", " + esc(umfang) : ""}</span></button>`;
+    }).join("");
+  return `<h2 class="abschnitt">Diese Woche</h2><div class="woche">${streifen}</div>${naechste ? `<div class="naechste">${naechste}</div>` : ""}`;
+}
 function zeigeHeute(){
   $("#leiste").hidden = true;
-  const aktiv = zustand.plan.filter(e => ["geplant","verschoben","erledigt"].includes(e.status || "geplant"));
-  let tage = "";
-  for(let i=0;i<4;i++){
-    const d = plusTage(HEUTE, i);
-    const liste = aktiv.filter(e => e.datum===d);
-    tage += `<div class="tag ${i===0?"heute":""}"><div class="tag-name">${tagLabel(d,i)}</div><div class="tag-inhalt">${
-      liste.length ? liste.map(e => einheitHtml(e, i===0)).join("")
-        : i===0 ? `<div class="ruhe-heute">${ruheBild(150)}<div><b>Ruhetag</b><div class="klein-grau">${esc(ruheSatz(d))}</div></div></div>`
-        : `<span class="leer">Ruhetag</span>`}</div></div>`;
-  }
-  const d = new Date();
   const t = tagesAmpel();
+  const g = begruessung(t);
+  const heute = zustand.plan.filter(e => e.datum===HEUTE && ["geplant","verschoben","erledigt"].includes(e.status || "geplant"));
+  const training = heute.length ? heute.map(e => trainingKarte(e, t)).join("")
+    : `<div class="einheit ruhe-heute">${ruheBild(130)}<div><b>Ruhetag</b><div class="klein-grau">${esc(ruheSatz(HEUTE))}</div></div></div>`;
   $("#app").innerHTML = `
     ${reiter("heute")}
-    <h1>${WOCHENTAGE[d.getDay()]}, ${d.getDate()}.${d.getMonth()+1}.</h1>
-    <div class="raster">
-      <div class="spalte">${planenKarte()}${t.checkin ? ampelKarte(t) + checkinKarte(t) : checkinKarte(t) + ampelKarte(t)}</div>
-      <div class="spalte"><div class="karte"><span class="augenbraue">Heute & die nächsten Tage</span>${tage}</div></div>
-    </div>
-    <div class="fuss"><button id="abmelden">Token auf diesem Gerät entfernen</button></div>`;
-  document.querySelectorAll("[data-log]").forEach(k => k.onclick = () => zeigeKraftLog(k.dataset.log));
+    <div class="heute-raster">
+      <section class="h-form">
+        <h1 class="gruss">${esc(g.titel)}</h1>
+        <p class="gruss-text">${esc(g.text)}</p>
+        ${tagesformHtml(t)}
+        ${checkinZeile(t)}
+        ${hinweiseHtml(t)}
+        ${planenKarte()}
+      </section>
+      <section class="h-training">
+        <h2 class="abschnitt">Dein Training heute</h2>
+        ${training}
+      </section>
+      <section class="h-woche">${wocheHtml()}</section>
+    </div>`;
+  bindeReiter();
   $("#zum-checkin").onclick = zeigeCheckin;
+  if($("#form-auf")) $("#form-auf").onclick = () => {
+    const m = $("#form-mehr"), auf = m.hidden; m.hidden = !auf; $("#form-auf").setAttribute("aria-expanded", String(auf));
+    const d = m.querySelector("details"); if(d) d.open = true;
+  };
   if($("#fit-knopf")) $("#fit-knopf").onclick = () => setzeFit(true);
   if($("#fit-zurueck")) $("#fit-zurueck").onclick = () => setzeFit(false);
   if($("#zur-planung")) $("#zur-planung").onclick = zeigeWochenplanung;
-  bindeReiter();
-  $("#abmelden").onclick = () => { if(confirm("Token auf diesem Gerät entfernen?")){ schreib(TOKEN_KEY, null); zeigeEinrichtung(); } };
+  document.querySelectorAll("[data-log]").forEach(k => k.onclick = () => zeigeKraftLog(k.dataset.log));
+  document.querySelectorAll("[data-oeffne]").forEach(k => k.onclick = () => { auswahl = {typ:"plan", id:k.dataset.oeffne}; wochenVersatz = Math.round(tageZwischen(montag(HEUTE), montag(zustand.plan.find(x => x.id===k.dataset.oeffne).datum)) / 7); zeigeKalender(); });
+  document.querySelectorAll("[data-tag]").forEach(k => k.onclick = () => {
+    const e = zustand.plan.find(x => x.datum===k.dataset.tag && x.status!=="gestrichen");
+    auswahl = e ? {typ:"plan", id:e.id} : {typ:"ruhe", id:k.dataset.tag}; wochenVersatz = 0; zeigeKalender();
+  });
+  document.querySelectorAll("[data-verschiebe]").forEach(k => k.onclick = () => zeigeVerschieben(zustand.plan.find(x => x.id===k.dataset.verschiebe)));
+  document.querySelectorAll("[data-schritte]").forEach(ul => ul.querySelectorAll("[data-schritt]").forEach(b => b.onclick = () => {
+    const e = {id: ul.dataset.schritte}, liste = abgehakt(e), i = +b.dataset.schritt;
+    const neu = liste.includes(i) ? liste.filter(x => x!==i) : liste.concat(i);
+    schreib("abgehakt_" + e.id + "_" + HEUTE, JSON.stringify(neu)); b.classList.toggle("an");
+  }));
 }
 
 // ---------- Check-in ----------
@@ -1122,35 +1490,6 @@ async function speichereKraft(){
 window.addEventListener("beforeunload", e => { if(ungespeichert && offen){ e.preventDefault(); e.returnValue = ""; } });
 
 // ---------- Navigation ----------
-function reiter(aktiv){
-  zustand.ansicht = aktiv;
-  return `<div class="reiter-zeile"><nav class="reiter">
-    <button data-reiter="heute" class="${aktiv==="heute"?"an":""}">Heute</button>
-    <button data-reiter="kalender" class="${aktiv==="kalender"?"an":""}">Kalender</button>
-    <button data-reiter="fortschritt" class="${aktiv==="fortschritt"?"an":""}">Fortschritt</button>
-    <button data-reiter="saison" class="${aktiv==="saison"?"an":""}">Saison</button></nav>
-    <button class="sync ${sync.laeuft?"laeuft":""}" id="sync" ${sync.laeuft?"disabled":""}>${syncText()}</button></div>`;
-}
-function bindeReiter(){
-  document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => ({kalender:zeigeKalender, fortschritt:zeigeFortschritt, saison:zeigeSaison}[b.dataset.reiter] || zeigeHeute)());
-  if($("#sync")) $("#sync").onclick = () => sync.neu.length ? zeigeNeuesTraining() : holeTrainings();
-}
-
-// ---------- Trainings jetzt von Garmin holen (startet den Abruf auf GitHub) ----------
-const sync = {laeuft:false, text:"", neu:[]};
-function standText(){
-  const s = zustand.status.letzter_abruf;
-  if(!s) return "";
-  const [d, z] = s.split(" ");
-  return d===HEUTE ? "heute " + z : d===plusTage(HEUTE,-1) ? "gestern " + z : d.slice(8,10)+"."+d.slice(5,7)+". " + z;
-}
-function syncText(){
-  if(sync.laeuft) return `<span class="dreh">↻</span> ${esc(sync.text || "Hole Trainings …")}`;
-  if(sync.neu.length) return `<b>${esc(sync.text)} – ansehen ›</b>`;
-  if(sync.text) return `${esc(sync.text)} · <b>↻ Nochmal</b>`;
-  const st = standText();
-  return `${st ? "Stand " + esc(st) + " · " : ""}<b>↻ Trainings laden</b>`;
-}
 // Morgens ohne verschickten Bericht: Morgenlauf einmal pro Tag und Gerät anstoßen (GitHub-Zeitplan ist unzuverlässig)
 async function morgenAnstossen(){
   const st = zustand.status || {}, h = new Date().getHours();
@@ -1171,7 +1510,6 @@ function zeigeNeuesTraining(){
   zeigeKalender();
   const d = document.querySelector(".karte.detail"); if(d) d.scrollIntoView({behavior:"smooth", block:"start"});
 }
-function zeigeSync(){ const b = $("#sync"); if(b){ b.className = "sync" + (sync.laeuft?" laeuft":""); b.disabled = sync.laeuft; b.innerHTML = syncText(); } }
 function ansichtNeu(){ ({kalender:zeigeKalender, fortschritt:zeigeFortschritt, saison:zeigeSaison}[zustand.ansicht] || zeigeHeute)(); }
 async function ghActions(pfad, opt={}){
   return fetch("https://api.github.com/repos/" + REPO + "/actions/" + pfad, {method: opt.method || "GET", cache:"no-store",
@@ -1310,7 +1648,7 @@ function zeigeKalender(){
     const zugeordnet = new Set(geplant.map(erledigtDurch).filter(Boolean));
     const extra = akt.filter(a => !zugeordnet.has(a));
     let inhalt = geplant.map(e => kalenderEinheit(e)).join("");
-    inhalt += extra.map(a => `<button class="k-akt ${auswahl && auswahl.typ==="akt" && String(auswahl.id)===String(a.id) ? "gewaehlt" : ""}" data-akt-id="${esc(a.id)}"><span class="punkt" style="background:${SPORT_FARBEN[a.sport]||"#BDB7AD"}"></span>
+    inhalt += extra.map(a => `<button class="k-akt ${auswahl && auswahl.typ==="akt" && String(auswahl.id)===String(a.id) ? "gewaehlt" : ""}" data-akt-id="${esc(a.id)}">${sportIc(a.sport, 18)}
       <span class="k-text"><span class="k-titel">${esc(SPORT_NAMEN[a.sport]||a.sport)}</span><span class="k-meta">✓ ${Math.round(a.dauer_min||0)} min</span></span></button>`).join("");
     if(!inhalt) inhalt = `<button class="k-ruhe ${auswahl && auswahl.typ==="ruhe" && auswahl.id===d ? "gewaehlt" : ""}" data-ruhe="${d}">Ruhetag</button>`;
     spalten += `<div class="k-tag ${d===HEUTE?"heute":""} ${d<HEUTE?"vorbei":""}">
@@ -1541,7 +1879,7 @@ function detailKarte(){
     const a = zustand.aktivitaeten.find(x => String(x.id)===String(auswahl.id));
     if(!a) return "";
     return `<div class="karte detail"><div class="augenbraue">${datumKurz(a.datum)} · nicht geplant</div>
-      <h2><span class="punkt gross" style="background:${SPORT_FARBEN[a.sport]||"#BDB7AD"}"></span>${esc(a.name || SPORT_NAMEN[a.sport])}</h2>
+      <h2>${sportIc(a.sport, 22)}${esc(a.name || SPORT_NAMEN[a.sport])}</h2>
       ${einordnungHtml(a, null)}${aktivitaetHtml(a)}${a.sport==="kraft" ? zustand.kraft.filter(k => k.datum===a.datum).map(k => kraftHtml({datum:k.datum, art:k.einheit})).join("") : ""}</div>`;
   }
   const e = zustand.plan.find(x => x.id===auswahl.id);
@@ -1583,7 +1921,7 @@ function detailKarte(){
     ? `<button class="knopf hell" data-detail="log">${zustand.kraft.some(k => k.datum===e.datum && k.einheit===e.art) ? "Kraft-Log ansehen" : "Training eintragen"}</button>` : "";
   return `<div class="karte detail">
     <div class="d-kopf"><div><div class="augenbraue">${datumKurz(e.datum)}${fertig ? " · ✓ erledigt" : ""}</div>
-      <h2 class="${gestrichen ? "durch" : ""}"><span class="punkt gross" style="background:${SPORT_FARBEN[e.sport]||"#BDB7AD"}"></span>${esc(kurzTitel(e))}</h2>
+      <h2 class="${gestrichen ? "durch" : ""}">${sportIc(e.sport, 22)}${esc(kurzTitel(e))}</h2>
       <div class="d-meta">${esc(SPORT_NAMEN[e.sport]||"")}${umfang ? " · " + esc(umfang) : ""} ${pille}</div></div></div>
     ${hauptteil}
     ${regel.length ? `<div class="warnung"><b>Regelhinweis:</b><ul>${regel.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
@@ -1629,7 +1967,7 @@ function kalenderEinheit(e){
   const pille = e.intensitaet && !gestrichen ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : "";
   const gewaehlt = auswahl && auswahl.typ==="plan" && auswahl.id===e.id;
   return `<button class="k-einheit ${gestrichen?"gestrichen":""} ${fertig?"fertig":""} ${gewaehlt?"gewaehlt":""}" data-einheit="${esc(e.id)}">
-    <span class="punkt" style="background:${SPORT_FARBEN[e.sport]||"#BDB7AD"}"></span>
+    ${sportIc(e.sport, 18)}
     <span class="k-text"><span class="k-titel">${fertig ? "✓ " : ""}${esc(kurzTitel(e))}</span>
       <span class="k-meta">${esc(umfang)}${marken.length ? (umfang ? " · " : "") + marken.join(" · ") : ""}</span></span>
     ${pille}</button>`;
@@ -1659,7 +1997,7 @@ async function aenderePlan(id, aenderung, nachricht){
       const neu = aenderung(plan);
       return neu.sort((a,b) => a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0);
     }, nachricht);
-    schliesseSheet(); zeigeKalender();
+    schliesseSheet(); ansichtNeu();
   }catch(err){
     if(s){ s.querySelectorAll("button").forEach(b => b.disabled = false);
       const f = s.querySelector(".sheet-fehler"); if(f) f.textContent = err.message==="token" ? "Token ungültig." : err.message; }
@@ -1763,7 +2101,7 @@ function zeigeUmwandeln(e){
   const s = sheet(`<div class="sheet-kopf"><div><div class="augenbraue">Umwandeln</div><h2>${esc(kurzTitel(e))}</h2>
       <div class="klein-grau">wird zu einer lockeren Einheit</div></div><button class="sheet-zu" aria-label="Schließen">×</button></div>
     <div class="sheet-aktionen">${ziele.map(sp => `<button class="knopf hell voll" data-sport="${sp}">
-      <span class="punkt" style="background:${SPORT_FARBEN[sp]};display:inline-block;margin:0 8px 1px 0"></span>${SPORT_NAMEN[sp]} locker</button>`).join("")}
+      ${sportIc(sp, 18)}${SPORT_NAMEN[sp]} locker</button>`).join("")}
       ${e.intensitaet && e.intensitaet!=="locker" ? `<button class="knopf hell voll" data-sport="${e.sport}">${SPORT_NAMEN[e.sport]} locker statt ${esc(e.intensitaet)}</button>` : ""}</div>
     <div class="sheet-fehler"></div>`);
   s.querySelector(".sheet-zu").onclick = schliesseSheet;
@@ -2112,7 +2450,7 @@ function zeichneWochenplanung(){
   const zielEnde = plusTage(wp.ziel, 6);
   const std = x => String(Math.round(x/6)/10).replace(".", ",");
   const sportZeilen = Object.entries(r.stunden).sort((a,b) => b[1]-a[1])
-    .map(([k,v]) => `<span class="wp-chip"><span class="punkt" style="background:${SPORT_FARBEN[k]||"#BDB7AD"}"></span>${esc(SPORT_NAMEN[k]||k)} ${String(Math.round(v*10)/10).replace(".", ",")} h</span>`).join("");
+    .map(([k,v]) => `<span class="wp-chip">${sportIc(k, 18)}${esc(SPORT_NAMEN[k]||k)} ${String(Math.round(v*10)/10).replace(".", ",")} h</span>`).join("");
   const ampelChips = ["gruen","gelb","rot"].filter(f => r.ampel[f]).map(f => `<span class="pille ${AMPEL[f].klasse}">${r.ampel[f]}× ${AMPEL[f].wort}</span>`).join(" ") || `<span class="klein-grau">noch keine Daten</span>`;
   const hrv = r.hrvWoche ? `${Math.round(r.hrvWoche)} ms` + (r.hrvVorher ? ` <span class="klein-grau">(sonst Ø ${Math.round(r.hrvVorher)})</span>` : "") : "–";
   const rueckHtml = `<div class="karte"><span class="augenbraue">Rückblick · ${datumKurz(r.start)}–${datumKurz(plusTage(r.start,6))}</span>
@@ -2161,7 +2499,7 @@ function zeichneWochenplanung(){
           fest ? "schon eingetragen" : "", e._bestehend ? `verschoben von ${datumKurz(e._vorher)}` : "",
           e.verkuerzt && !fest ? "gekürzt" : "", e.optional ? "spontan" : "", e._manuell ? "von dir gesetzt" : ""].filter(Boolean).join(" · ");
         return `<div class="wp-einheit ${fest?"fest":""} ${e.optional?"optional":""} ${e._manuell?"manuell":""}" data-wp-key="${esc(e._key || e.id)}" role="button" tabindex="0">
-          <span class="punkt" style="background:${SPORT_FARBEN[e.sport]||"#BDB7AD"}"></span>
+          ${sportIc(e.sport, 18)}
           <span class="k-text"><span class="k-titel">${esc(kurzTitel(e))}</span><span class="k-meta">${esc(meta)}</span></span>
           ${e.intensitaet ? `<span class="pille ${INTENSITAET[e.intensitaet]||"p-grau"}">${esc(e.intensitaet)}</span>` : ""}</div>`; }).join("");
       const sig = [...f, ...n].map(e => kurzTitel(e) + (e.dauer_min||"") + (e.optional?"s":"")).join("|");
@@ -2551,7 +2889,7 @@ function readinessKarte(){
 
 
 // ---------- Saison: grober Plan bis zum Wettkampf (aus einstellungen.json → saison) ----------
-const BLOCK_FARBEN = ["#A9C7E8","#6FA3D6","#3B78BC","#24548F","#13305A"];
+const BLOCK_FARBEN = ["#EBCDE9","#D79BD3","#B85CB3","#8E2A8B","#5C1559"];
 let saisonWahl = null;
 function saisonWochen(){
   const sa = zustand.einstellungen.saison || {}, bl = sa.bloecke || [];
@@ -2589,8 +2927,8 @@ function wochenInfo(x){
   const teile = [`<b>KW ${x.kw}</b> · ${tagMonat(x.w)}–${tagMonat(x.ende)}`, esc(x.b.name), ART_TEXT[x.art]];
   if(x.echt) teile.push(`geplant: ${x.echt.modus==="entlastung" ? "Entlastung" : x.echt.modus==="halten" ? "Halten" : "Steigern"}`);
   if(x.stunden!==null) teile.push(`${fmtZahl(x.stunden)} h trainiert`);
-  return teile.join(" · ") + (x.meilensteine.length ? `<div style="margin-top:4px">🏁 ${esc(x.meilensteine.join(" · "))}</div>` : "")
-    + x.tests.map(t => `<div style="margin-top:4px">🧪 <b>${esc(t.name)}</b> am ${datumKurz(t.datum)}${t.erledigt ? " ✓" : ""} – ${esc(t.wozu)}. <span class="klein-grau">${esc(t.bedingung)}</span></div>`).join("");
+  return teile.join(" · ") + (x.meilensteine.length ? `<div style="margin-top:4px">${icon("ziel",15,2)} ${esc(x.meilensteine.join(" · "))}</div>` : "")
+    + x.tests.map(t => `<div style="margin-top:4px">${icon("test",15,2)} <b>${esc(t.name)}</b> am ${datumKurz(t.datum)}${t.erledigt ? " ✓" : ""} – ${esc(t.wozu)}. <span class="klein-grau">${esc(t.bedingung)}</span></div>`).join("");
 }
 function zeigeSaison(){
   $("#leiste").hidden = true;
@@ -2609,9 +2947,9 @@ function zeigeSaison(){
   const MONATE = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
   const raster = Object.entries(monate).map(([m, ws]) => `<div class="s-monat"><span class="s-mname">${MONATE[+m.slice(5)-1]} ${m.slice(2,4)}</span><div class="s-wochen">${
     ws.map(x => `<button class="s-woche ${x.art} ${x.w===montag(HEUTE)?"heute":""} ${x.w < montag(HEUTE)?"vorbei":""}" data-woche="${x.w}"
-      style="--f:${BLOCK_FARBEN[x.i % 5]}" aria-label="KW ${x.kw}"><span>${x.meilensteine.length ? "🏁" : x.tests.length ? "🧪" : x.kw}</span></button>`).join("")}</div></div>`).join("");
+      style="--f:${BLOCK_FARBEN[x.i % 5]};--t:${x.i % 5 < 2 ? "#2A1633" : "#fff"}" aria-label="KW ${x.kw}"><span>${x.meilensteine.length ? icon("ziel",14,2.2) : x.tests.length ? icon("test",14,2.2) : x.kw}</span></button>`).join("")}</div></div>`).join("");
   const legende = `<div class="c-legende"><span><i style="background:${BLOCK_FARBEN[2]}"></i>Belastung</span>
-    <span><i class="s-leg-entl"></i>Entlastung</span><span><i class="s-leg-taper"></i>Tapering</span><span>🏁 Meilenstein</span><span>🧪 Test</span></div>`;
+    <span><i class="s-leg-entl"></i>Entlastung</span><span><i class="s-leg-taper"></i>Tapering</span><span>${icon("ziel",14,2)} Meilenstein</span><span>${icon("test",14,2)} Test</span></div>`;
   const wahl = wochen.find(x => x.w===saisonWahl) || jetzt || wochen[0];
   // Blöcke im Detail
   const ziele = (zustand.einstellungen.ziele || {}).halbmarathon_meilensteine || [];
@@ -2619,13 +2957,13 @@ function zeigeSaison(){
     const ws = wochen.filter(x => x.i===i), nr = ws.findIndex(x => x.w===montag(HEUTE));
     const vorbei = b.bis < HEUTE, ms = ziele.filter(m => m.bis >= b.von && m.bis <= b.bis);
     const status = i===aktiv && !vorbei ? `<span class="pille p-gruen">Jetzt · Woche ${nr+1} von ${ws.length}</span>` : vorbei ? `<span class="pille p-grau">erledigt</span>` : "";
-    const fokus = Object.entries(b.fokus || {}).map(([sp, t]) => `<li><span class="punkt" style="background:${SPORT_FARBEN[sp]||"#BDB7AD"}"></span><div><b>${esc(SPORT_NAMEN[sp]||sp)}:</b> ${esc(t)}</div></li>`).join("");
+    const fokus = Object.entries(b.fokus || {}).map(([sp, t]) => `<li>${sportIc(sp, 18)}<div><b>${esc(SPORT_NAMEN[sp]||sp)}:</b> ${esc(t)}</div></li>`).join("");
     const inhalt = `<p style="margin:10px 0 0">${esc(b.ziel)}</p>
       <ul class="s-fokus">${fokus}</ul>
       <div class="f-unter" style="margin-top:12px">Schlüsseleinheiten</div><div class="s-chips">${(b.schluessel||[]).map(k => `<span>${esc(k)}</span>`).join("")}</div>
-      ${ms.length ? `<div class="f-unter">Meilensteine</div>${ms.map(m => `<div class="f-zeile"><span>🏁 ${esc(m.name)}</span><b>${tagMonat(m.bis)}</b></div>`).join("")}` : ""}
+      ${ms.length ? `<div class="f-unter">Meilensteine</div>${ms.map(m => `<div class="f-zeile"><span class="mit-ic">${icon("ziel",15,2)} ${esc(m.name)}</span><b>${tagMonat(m.bis)}</b></div>`).join("")}` : ""}
       ${(() => { const ts = saisonTests().filter(t => t.datum >= b.von && t.datum <= b.bis);
-        return ts.length ? `<div class="f-unter">Tests</div>${ts.map(t => `<div class="f-zeile"><span>🧪 ${esc(t.name)}<div class="klein-grau">${esc(t.wozu)}</div></span><b>${t.erledigt ? "✓ " : ""}${tagMonat(t.datum)}</b></div>`).join("")}` : ""; })()}`;
+        return ts.length ? `<div class="f-unter">Tests</div>${ts.map(t => `<div class="f-zeile"><span class="mit-ic">${icon("test",15,2)} <span>${esc(t.name)}<span class="klein-grau" style="display:block">${esc(t.wozu)}</span></span></span><b>${t.erledigt ? "✓ " : ""}${tagMonat(t.datum)}</b></div>`).join("")}` : ""; })()}`;
     const kopf = `<div class="s-kopf"><span class="s-nr" style="background:${BLOCK_FARBEN[i % 5]}">${i+1}</span><div style="flex:1"><b>${esc(b.name)}</b>
       <div class="klein-grau">${datumKurz(b.von)} – ${datumKurz(b.bis)} · ${ws.length} Wochen · Phase ${esc(b.phase)}</div></div>${status}</div>`;
     return i===aktiv ? `<div class="karte s-karte aktiv">${kopf}${inhalt}</div>`
@@ -2637,7 +2975,7 @@ function zeigeSaison(){
     <div class="f-countdown">${wk.datum ? `<b>${Math.ceil(tageZwischen(HEUTE, wk.datum)/7)}</b> Wochen bis ${esc(wk.name || "zum Wettkampf")}` : ""}</div>
     <div class="karte"><span class="augenbraue">Überblick</span>
       <div class="s-balken-wrap"><div class="s-balken">${balken}</div><div class="s-heute" style="left:${heutePos}%"><span>heute</span></div></div>
-      <div class="s-balken-daten"><span>${tagMonat(bl[0].von)}</span><span>🏁 ${tagMonat(bl[bl.length-1].bis)}</span></div>
+      <div class="s-balken-daten"><span>${tagMonat(bl[0].von)}</span><span class="mit-ic">${icon("ziel",14,2)} ${tagMonat(bl[bl.length-1].bis)}</span></div>
       <div class="s-raster">${raster}</div>${legende}
       <div class="s-info" id="s-info">${wochenInfo(wahl)}</div>
       <p class="klein-grau" style="margin:10px 0 0">Grober Rahmen – die Details entstehen jeden Sonntag in der Wochenplanung und passen sich an Ampel, Infekte und Knie an.</p></div>
