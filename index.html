@@ -635,6 +635,13 @@ ul.schritte li:first-child{border-top:0}
 .thema-wahl button{appearance:none;border:1.5px solid var(--linie);background:var(--karte);border-radius:16px;padding:12px;font:inherit;font-weight:600;color:var(--tinte);display:flex;align-items:center;gap:10px;cursor:pointer;text-align:left}
 .thema-wahl button.an{border-color:var(--pflaume);box-shadow:inset 0 0 0 1px var(--pflaume)}
 .thema-wahl i{width:28px;height:28px;border-radius:50%;flex:none}
+
+.ort-wahl{display:inline-grid;grid-template-columns:1fr 1fr;gap:3px;background:var(--hg);border-radius:11px;padding:3px;margin:12px 0 2px}
+.ort-wahl button{appearance:none;border:0;background:none;font:inherit;font-size:13px;font-weight:550;color:var(--grau);padding:6px 14px;border-radius:8px;cursor:pointer}
+.ort-wahl button.an{background:var(--karte);color:var(--tinte);font-weight:650;box-shadow:0 1px 3px rgba(42,22,51,.1)}
+.ort-wahl.gross{display:grid;margin:0 0 18px}
+.ort-wahl.gross button{padding:10px;font-size:14px}
+.einheit .ort-wahl+.umschalter{margin-top:8px}
 </style>
 </head>
 <body>
@@ -892,7 +899,42 @@ function zusammensetzung(){
 }
 
 // Was heute für eine Einheit gilt (wie scripts/plan.py, plus Check-in)
+
+// ---------- Rad drinnen oder draußen (Rad-Schwelle: Ergometer-Stufen vs. Strecke/Anstieg nach Puls) ----------
+function radOrt(e){ return e.ort || (zustand.einstellungen || {}).rad_ort || "draussen"; }
+function hatOrtWahl(e){ return e && e.sport==="rad" && e.art==="rad_schwelle"; }
+function draussenText(t){
+  return String(t)
+    .replace(/^Locker einfahren$/, "15 min locker einrollen")
+    .replace(/^Locker ausfahren$/, "10–15 min locker ausrollen")
+    .replace(/^Lockere Pausen dazwischen$/, "Je 4 min locker rollen dazwischen")
+    .replace(/(\d+×\d+ min) Stufe \d+(?:,\s*mind\.\s*\d+\s*upm)?(,\s*)?/, (m, iv, k) => `${iv} zügig auf flacher Strecke ohne Ampeln oder an einem gleichmäßigen Anstieg${k ? ", " : ""}`);
+}
+function mitOrt(e){
+  if(!hatOrtWahl(e) || radOrt(e)!=="draussen") return e;
+  const v = {};
+  Object.entries(e.varianten || {}).forEach(([k, l]) => v[k] = Array.isArray(l) ? l.map(draussenText) : l);
+  return {...e, details: Array.isArray(e.details) ? e.details.map(draussenText) : e.details, varianten: v};
+}
+function ortWahlHtml(e){
+  if(!hatOrtWahl(e)) return "";
+  const o = radOrt(e);
+  return `<div class="ort-wahl" role="group" aria-label="Wo fährst du?">
+    <button data-ort="drinnen" data-id="${esc(e.id)}" class="${o==="drinnen" ? "an" : ""}">Drinnen</button>
+    <button data-ort="draussen" data-id="${esc(e.id)}" class="${o==="draussen" ? "an" : ""}">Draußen</button></div>`;
+}
+document.addEventListener("click", async ev => {
+  const b = ev.target.closest("[data-ort]"); if(!b || b.classList.contains("an")) return;
+  ev.preventDefault();
+  try{
+    zustand.plan = await aendere("daten/plan.json", [], plan => plan.map(x => x.id===b.dataset.id ? {...x, ort: b.dataset.ort} : x),
+      `Plan: ${b.dataset.id} ${b.dataset.ort}`);
+    ansichtNeu(); meldung(b.dataset.ort==="draussen" ? "Draußen-Variante" : "Drinnen-Variante");
+  }catch(err){ meldung(err.message==="token" ? "Token ungültig" : err.message); }
+}, true);
+
 function heuteFuer(e, t){
+  e = mitOrt(e);
   if(e.sport==="laufen" && t.laufsperre)
     return {label:"Heute kein Lauf:", text:"Knie oder Hüfte über 3/10 – stattdessen locker Rad oder Schwimmen.", farbe:"rot"};
   if(e.art==="test_rad"){
@@ -1009,8 +1051,18 @@ function zeigeKonto(){
   const s = sheet(`<div class="sheet-kopf"><div><h2>${esc(nutzerName() || "Konto")}</h2></div><button class="sheet-zu" aria-label="Schließen">×</button></div>
     <div class="augenbraue" style="margin:4px 0 8px">Farbschema</div>
     <div class="thema-wahl">${Object.entries(THEMEN).map(([k, t]) => `<button data-thema="${k}" class="${aktuellesThema()===k ? "an" : ""}"><i style="background:${t.vorschau}"></i>${t.name}</button>`).join("")}</div>
+    <div class="augenbraue" style="margin:4px 0 8px">Rad-Schwelle standardmäßig</div>
+    <div class="ort-wahl gross" id="ort-standard">${["drinnen","draussen"].map(o => `<button data-standard="${o}" class="${((zustand.einstellungen||{}).rad_ort || "draussen")===o ? "an" : ""}">${o==="drinnen" ? "Drinnen (Ergometer)" : "Draußen"}</button>`).join("")}</div>
     <p class="klein-grau" style="margin:0 0 16px">${st ? "Daten zuletzt von Garmin geholt: " + esc(st) + "." : ""}</p>
     <button class="knopf hell voll" id="token-weg">Token auf diesem Gerät entfernen</button>`);
+  s.querySelectorAll("[data-standard]").forEach(b => b.onclick = async () => {
+    if(b.classList.contains("an")) return;
+    try{
+      zustand.einstellungen = await aendere("einstellungen.json", {}, e => ({...e, rad_ort: b.dataset.standard}), "Einstellung: Rad-Schwelle " + b.dataset.standard);
+      s.querySelectorAll("[data-standard]").forEach(x => x.classList.toggle("an", x===b));
+      meldung("Gespeichert"); 
+    }catch(err){ meldung(err.message==="token" ? "Token ungültig" : err.message); }
+  });
   s.querySelectorAll("[data-thema]").forEach(b => b.onclick = () => {
     setzeThema(b.dataset.thema);
     s.querySelectorAll("[data-thema]").forEach(x => x.classList.toggle("an", x===b));
@@ -1115,6 +1167,7 @@ function untertitel(e){
   return teile.filter(Boolean).join(", ");
 }
 function trainingKarte(e, t){
+  e = mitOrt(e);
   const fertig = erledigtDurch(e);
   const h = heuteFuer(e, t);
   const kraftArt = e.art && zustand.uebungen[e.art] ? e.art : null;
@@ -1151,7 +1204,7 @@ function trainingKarte(e, t){
   const verschieben = verschiebeTipp
     ? `<div class="e-fuss"><span>Bei ${AMPEL[h.farbe].wort} empfohlen: verschieben</span><button class="link" data-verschiebe="${esc(e.id)}">Verschieben</button></div>` : "";
   const kraft = kraftArt ? `<button class="knopf hell klein e-log" data-log="${esc(e.id)}">${log ? "Eintrag ansehen" : "Training eintragen"}</button>` : "";
-  return `<div class="einheit">${kopf}${umschalter}${hinweis}${schritte}${verschieben}${kraft}</div>`;
+  return `<div class="einheit">${kopf}${ortWahlHtml(e)}${umschalter}${hinweis}${schritte}${verschieben}${kraft}</div>`;
 }
 function wocheHtml(){
   const mo = montag(HEUTE);
@@ -1936,8 +1989,9 @@ function detailKarte(){
       <h2>${sportIc(a.sport, 22)}${esc(a.name || SPORT_NAMEN[a.sport])}</h2>
       ${einordnungHtml(a, null)}${aktivitaetHtml(a)}${a.sport==="kraft" ? zustand.kraft.filter(k => k.datum===a.datum).map(k => kraftHtml({datum:k.datum, art:k.einheit})).join("") : ""}</div>`;
   }
-  const e = zustand.plan.find(x => x.id===auswahl.id);
-  if(!e) return "";
+  const e0 = zustand.plan.find(x => x.id===auswahl.id);
+  if(!e0) return "";
+  const e = mitOrt(e0);
   const fertig = erledigtDurch(e);
   const gestrichen = e.status==="gestrichen";
   const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "");
@@ -1977,6 +2031,7 @@ function detailKarte(){
     <div class="d-kopf"><div><div class="augenbraue">${datumKurz(e.datum)}${fertig ? " · ✓ erledigt" : ""}</div>
       <h2 class="${gestrichen ? "durch" : ""}">${sportIc(e.sport, 22)}${esc(kurzTitel(e))}</h2>
       <div class="d-meta">${esc(SPORT_NAMEN[e.sport]||"")}${umfang ? " · " + esc(umfang) : ""} ${pille}</div></div></div>
+    ${ortWahlHtml(e)}
     ${hauptteil}
     ${regel.length ? `<div class="warnung"><b>Regelhinweis:</b><ul>${regel.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
     ${verlauf.length ? `<div class="d-verlauf">${verlauf.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
