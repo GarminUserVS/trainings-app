@@ -642,6 +642,12 @@ ul.schritte li:first-child{border-top:0}
 .ort-wahl.gross{display:grid;margin:0 0 18px}
 .ort-wahl.gross button{padding:10px;font-size:14px}
 .einheit .ort-wahl+.umschalter{margin-top:8px}
+
+.erinnerung{display:flex;align-items:center;gap:7px;background:var(--pflaume-t);color:var(--pflaume-d);border-radius:12px;padding:7px 11px;font-size:13.5px;font-weight:650;margin:0 0 8px}
+.erinnerung .ic{flex:none}
+.erinnerung-heute{margin-top:16px}
+.erinnerung-heute .erinnerung{font-size:15px;padding:11px 14px}
+.n-erinnerung{cursor:default}
 </style>
 </head>
 <body>
@@ -747,7 +753,7 @@ async function pruefeZugriff(){
 
 async function ladeAlles(){
   await pruefeZugriff();
-  const [plan, bericht, uebungen, kraft, checkins, aktivitaeten, einstellungen, wochen, status] = await Promise.all([
+  const [plan, bericht, uebungen, kraft, checkins, aktivitaeten, einstellungen, wochen, status, erinnerungen] = await Promise.all([
     ladeJson("daten/plan.json", []),
     ladeJson("daten/berichte/" + HEUTE + ".json", null),
     ladeJson("daten/uebungen.json", {}),
@@ -756,12 +762,14 @@ async function ladeAlles(){
     ladeJson("daten/aktivitaeten.json", []),
     ladeJson("einstellungen.json", {}),
     ladeJson("daten/wochen.json", []),
-    ladeJson("daten/status.json", {})
+    ladeJson("daten/status.json", {}),
+    ladeJson("daten/erinnerungen.json", [])
   ]);
 
   zustand.plan = plan.daten; zustand.bericht = bericht.daten; zustand.uebungen = uebungen.daten; zustand.kraft = kraft.daten;
   zustand.checkins = checkins.daten; zustand.aktivitaeten = aktivitaeten.daten; zustand.einstellungen = einstellungen.daten; zustand.wochen = wochen.daten;
   zustand.status = status.daten || {};
+  zustand.erinnerungen = erinnerungen.daten || [];
 }
 
 // ---------- Ansichten ----------
@@ -1002,8 +1010,19 @@ const ICONS = {
   test:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 15h9"/>',
   ziel:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
   haken:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  pfeil:'<path d="M9 6l6 6-6 6"/>'
+  pfeil:'<path d="M9 6l6 6-6 6"/>',
+  glocke:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'
 };
+// Erinnerungen (einmalig: datum, wiederkehrend: start + alle_tage)
+function erinnerungenAm(d){
+  return (zustand.erinnerungen || []).filter(e => {
+    if(e.datum) return e.datum===d;
+    if(!e.start || !e.alle_tage) return false;
+    const diff = tageZwischen(e.start, d);
+    return diff >= 0 && diff % e.alle_tage === 0;
+  });
+}
+function erinnerungChip(e){ return `<div class="erinnerung">${icon("glocke", 15, 2)}<span>${esc(e.titel)}</span></div>`; }
 function sportIc(sp, groesse=18){ return `<span class="sp-ic">${icon(ICONS[sp] ? sp : "sonstiges", groesse)}</span>`; }
 function icon(name, groesse=24, staerke=1.8){
   return `<svg class="ic" width="${groesse}" height="${groesse}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${staerke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ICONS.sonstiges}</svg>`;
@@ -1222,7 +1241,11 @@ function wocheHtml(){
       const umfang = e.dauer_min ? e.dauer_min + " min" : (e.umfang || "").replace(/^ca\.\s*/, "");
       return `<button class="n-zeile" data-oeffne="${esc(e.id)}"><span class="n-ic s-${e.sport}">${icon(e.sport, 18)}</span><span class="n-titel">${esc(e.titel)}</span><span class="n-wann">${esc(wann)}${umfang ? ", " + esc(umfang) : ""}</span></button>`;
     }).join("");
-  return `<h2 class="abschnitt">Diese Woche</h2><div class="woche">${streifen}</div>${naechste ? `<div class="naechste">${naechste}</div>` : ""}`;
+  const merken = [...Array(6)].map((_, i) => plusTage(HEUTE, i + 1)).flatMap(d => erinnerungenAm(d).map(e => {
+      const wann = d===plusTage(HEUTE, 1) ? "Morgen" : TAGE_LANG[new Date(d+"T12:00:00").getDay()];
+      return `<div class="n-zeile n-erinnerung"><span class="n-ic">${icon("glocke", 18)}</span><span class="n-titel">${esc(e.titel)}</span><span class="n-wann">${esc(wann)}</span></div>`;
+    })).join("");
+  return `<h2 class="abschnitt">Diese Woche</h2><div class="woche">${streifen}</div>${naechste || merken ? `<div class="naechste">${merken}${naechste}</div>` : ""}`;
 }
 function zeigeHeute(){
   $("#leiste").hidden = true;
@@ -1238,6 +1261,7 @@ function zeigeHeute(){
         <h1 class="gruss">${esc(g.titel)}</h1>
         <p class="gruss-text">${esc(g.text)}</p>
         ${tagesformHtml(t)}
+        ${erinnerungenAm(HEUTE).length ? `<div class="erinnerung-heute">${erinnerungenAm(HEUTE).map(erinnerungChip).join("")}</div>` : ""}
         ${checkinZeile(t)}
         ${hinweiseHtml(t)}
         ${planenKarte()}
@@ -1760,7 +1784,7 @@ function zeigeKalender(){
     if(!inhalt) inhalt = `<button class="k-ruhe ${auswahl && auswahl.typ==="ruhe" && auswahl.id===d ? "gewaehlt" : ""}" data-ruhe="${d}">Ruhetag</button>`;
     spalten += `<div class="k-tag ${d===HEUTE?"heute":""} ${d<HEUTE?"vorbei":""}">
       <div class="k-kopf"><span>${datumKurz(d)}</span><button class="k-plus" data-neu="${d}" aria-label="Einheit hinzufügen">+</button></div>
-      ${inhalt}</div>`;
+      ${erinnerungenAm(d).map(erinnerungChip).join("")}${inhalt}</div>`;
   }
   $("#app").innerHTML = `${reiter("kalender")}
     <div class="k-nav"><button class="knopf klein hell" id="k-zurueck" aria-label="Vorige Woche">‹</button>
