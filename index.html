@@ -1894,6 +1894,18 @@ function aktivitaetHtml(a){
 function minProKm(a){ return a.distanz_km > 0.3 && a.dauer_min ? a.dauer_min / a.distanz_km : null; }
 function paceText(p, pro100=false){ if(!p) return "–"; const x = pro100 ? p/10 : p; const m = Math.floor(x), s = Math.round((x-m)*60);
   return (s===60 ? (m+1)+":00" : m+":"+String(s).padStart(2,"0")) + (pro100 ? " /100 m" : " /km"); }
+// Puls-Vorgabe aus dem Plan lesen, z. B. „Puls 145–160“ oder „Puls unter ca. 150“
+function pulsZiel(e){
+  if(!e) return null;
+  const texte = [].concat(e.details || [], ...Object.values(e.varianten || {})).map(String);
+  for(const t of texte){
+    let m = t.match(/Puls\s*(?:eher\s*)?(\d{2,3})\s*[–-]\s*(\d{2,3})/i);
+    if(m) return {von:+m[1], bis:+m[2], text:`${m[1]}–${m[2]}`};
+    m = t.match(/Puls\s*(?:unter|<)\s*(?:ca\.\s*)?(\d{2,3})/i);
+    if(m) return {von:0, bis:+m[1], text:`unter ${m[1]}`};
+  }
+  return null;
+}
 function einordnung(a, e){
   const plus = [], minus = [], info = [];
   const z = a.zonen_min || [], zSumme = z.reduce((x,y)=>x+(y||0),0);
@@ -1911,7 +1923,14 @@ function einordnung(a, e){
   // Ohne Plan gilt Laufen in der Grundlagenphase als locker gemeint
   const gemeint = e ? e.intensitaet : (a.sport==="laufen" ? "locker" : null);
   {
-    if(z12!==null && gemeint==="locker" && a.sport!=="kraft"){
+    const ziel = pulsZiel(e);
+    if(ziel && a.puls_avg && gemeint==="locker" && a.sport!=="kraft"){
+      // Vorgabe aus dem Plan geht vor Garmins Standard-Zonen
+      if(a.puls_avg <= ziel.bis && (!a.puls_max || a.puls_max <= ziel.bis + 10))
+        plus.push(`Locker geblieben: Ø Puls ${Math.round(a.puls_avg)}, Vorgabe ${ziel.text}` + (a.puls_avg < ziel.von ? " – sogar etwas ruhiger als nötig" : ""));
+      else if(a.puls_avg <= ziel.bis) info.push(`Ø Puls ${Math.round(a.puls_avg)} passt zur Vorgabe ${ziel.text}, aber zwischendurch bis ${Math.round(a.puls_max)}`);
+      else minus.push(`Puls höher als vorgegeben: Ø ${Math.round(a.puls_avg)} statt ${ziel.text}`);
+    } else if(z12!==null && gemeint==="locker" && a.sport!=="kraft"){
       if(z12 >= 0.8) plus.push(`Wirklich locker geblieben: ${pct(z12)} in Zone 1–2`);
       else if(z12 < 0.6) minus.push(`Für eine lockere Einheit zu intensiv: nur ${pct(z12)} in Zone 1–2`);
       else info.push(`${pct(z12)} in Zone 1–2 – beim nächsten Mal etwas ruhiger`);
