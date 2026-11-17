@@ -660,6 +660,48 @@ ul.schritte li:first-child{border-top:0}
 .p-tab table{border-collapse:collapse;width:100%;font-size:14.5px}
 .p-tab th{text-align:left;font-weight:650;color:var(--grau);font-size:13px;padding:9px 10px 6px 0}
 .p-tab td{padding:9px 10px 9px 0;border-top:1px solid var(--linie);vertical-align:top}
+
+/* =====================================================================
+   Lesbarkeit & Bedienbarkeit (Apple HIG): Kontrast mind. 4,5:1 für Text,
+   Schrift mind. 11 px, Tippflächen mind. 44 px, Systemeinstellungen beachten.
+   ===================================================================== */
+:root{ --gruen-s:#0C7A50; --gelb-s:#8A5A00; --rot-s:#C21F4B; }
+/* Ampel-/Intensitätsfarben als Text: dunklere Schriftvariante (Flächen bleiben kräftig) */
+.p-gruen,.t-gruen,.f-kraft-wert span.plus{color:var(--gruen-s)}
+.p-gelb,.t-gelb{color:var(--gelb-s)}
+.p-rot,.t-rot,.warn-text{color:var(--rot-s)!important}
+/* --hell (2,4:1) nur noch für Linien und Rahmen, nie für Text */
+.reiter button{color:var(--grau)}
+.w-tag.vorbei{color:var(--grau);font-weight:500}
+.w-tag.vorbei .dt{font-weight:500}
+.kreis.an+span{color:var(--grau)}
+.signale::after{font-size:11px;color:var(--grau)}
+/* Mindestgröße 11 px */
+.c-label{font-size:11px}
+.sig span{font-size:11px;letter-spacing:-.01em}
+.signale{grid-template-columns:repeat(4,auto);justify-content:space-between;gap:8px}
+.sig i{width:26px}
+@media (max-width: 480px){ .form{gap:16px} .form-zahl small{max-width:15ch} }
+/* Einordnung-Kopf: Klassenname kollidierte mit dem Einheiten-Kopf (Raster mit 44-px-Spalte) */
+.einordnung .e-kopf{display:flex;grid-template-columns:none;padding-bottom:0}
+/* Tippflächen: sichtbar klein, antippbar 44 × 44 */
+.rund{width:44px;height:44px}
+.k-nav .knopf{width:44px;height:44px}
+.k-plus,.kreis,.sheet-zu{position:relative}
+.k-plus::after,.kreis::after,.sheet-zu::after{content:"";position:absolute;inset:-8px}
+.kreis::after{inset:-10px}
+.sheet-zu{width:36px;height:36px;border-radius:18px}
+.wp-flags button{padding:6px 12px !important;font-size:13px !important}
+.d-aktionen .knopf,.sheet-aktionen .knopf{min-height:44px}
+/* „Transparenz reduzieren“ (iOS) → Leiste unten ohne Unschärfe */
+@media (prefers-reduced-transparency: reduce){
+  .reiter{background:var(--karte);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+/* „Kontrast erhöhen“ (iOS) → dunklere Grautöne und Linien */
+@media (prefers-contrast: more){
+  :root,:root[data-thema]{ --grau:#4E3F60; --hell:#76658A; --linie:#C9B6D6; }
+  .karte,.einheit,.k-einheit{box-shadow:inset 0 0 0 1px var(--linie)}
+}
 </style>
 </head>
 <body>
