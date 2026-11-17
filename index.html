@@ -648,6 +648,18 @@ ul.schritte li:first-child{border-top:0}
 .erinnerung-heute{margin-top:16px}
 .erinnerung-heute .erinnerung{font-size:15px;padding:11px 14px}
 .n-erinnerung{cursor:default}
+
+.profil{max-width:760px;font-size:15.5px;line-height:1.55}
+.profil h1{margin-top:12px}
+.profil .p-h2{font-family:var(--serif);font-weight:400;font-size:28px;margin:34px 0 10px;letter-spacing:0}
+.profil p{margin:0 0 12px;color:var(--tinte)}
+.profil ul{margin:0 0 12px;padding-left:20px}
+.profil li{margin:4px 0}
+.profil b{font-weight:650}
+.p-tab{overflow-x:auto;margin:6px 0 14px;background:var(--karte);border-radius:16px;padding:4px 14px}
+.p-tab table{border-collapse:collapse;width:100%;font-size:14.5px}
+.p-tab th{text-align:left;font-weight:650;color:var(--grau);font-size:13px;padding:9px 10px 6px 0}
+.p-tab td{padding:9px 10px 9px 0;border-top:1px solid var(--linie);vertical-align:top}
 </style>
 </head>
 <body>
@@ -1065,15 +1077,62 @@ function setzeThema(t){
   const m = document.querySelector('meta[name="theme-color"]'); if(m) m.content = THEMEN[k].hg;
 }
 setzeThema();
+
+// ---------- Trainingsprofil (profil.md im Daten-Repository) ----------
+function mdInline(t){ return esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>"); }
+function markdown(md){
+  const zeilen = md.replace(/\r/g, "").split("\n"); let html = "", i = 0;
+  while(i < zeilen.length){
+    const z = zeilen[i];
+    if(/^#\s/.test(z)){ html += `<h1>${mdInline(z.slice(2))}</h1>`; i++; continue; }
+    if(/^##\s/.test(z)){ html += `<h2 class="p-h2">${mdInline(z.slice(3))}</h2>`; i++; continue; }
+    if(/^\|/.test(z)){
+      const rows = []; while(i < zeilen.length && /^\|/.test(zeilen[i])){ rows.push(zeilen[i]); i++; }
+      const zellen = r => r.replace(/^\||\|$/g, "").split("|").map(x => x.trim());
+      const kopf = zellen(rows[0]), rumpf = rows.slice(2).map(zellen);
+      html += `<div class="p-tab"><table><tr>${kopf.map(k => `<th>${mdInline(k)}</th>`).join("")}</tr>${rumpf.map(r => `<tr>${r.map(c => `<td>${mdInline(c)}</td>`).join("")}</tr>`).join("")}</table></div>`;
+      continue;
+    }
+    if(/^\s*- /.test(z)){
+      let liste = "<ul>", tiefe = 0;
+      while(i < zeilen.length && /^\s*- /.test(zeilen[i])){
+        const t = (zeilen[i].match(/^\s*/)[0].length >= 2) ? 1 : 0;
+        if(t > tiefe) liste += "<ul>"; if(t < tiefe) liste += "</ul>"; tiefe = t;
+        liste += `<li>${mdInline(zeilen[i].replace(/^\s*- /, ""))}</li>`; i++;
+      }
+      html += liste + (tiefe ? "</ul>" : "") + "</ul>"; continue;
+    }
+    if(z.trim()){ html += `<p>${mdInline(z)}</p>`; }
+    i++;
+  }
+  return html;
+}
+async function zeigeProfil(){
+  schliesseSheet();
+  $("#leiste").hidden = true;
+  $("#app").innerHTML = `<button class="zurueck" id="zurueck">‹ Zurück</button><div class="leer">Lade Profil …</div>`;
+  $("#zurueck").onclick = ansichtNeu;
+  try{
+    const res = await gh("profil.md");
+    if(res.status===404) throw new Error("Noch kein Profil vorhanden.");
+    if(!res.ok) throw new Error("GitHub antwortet mit " + res.status);
+    const j = await res.json();
+    $("#app").innerHTML = `<button class="zurueck" id="zurueck">‹ Zurück</button><article class="profil">${markdown(b64zuText(j.content))}</article>`;
+    $("#zurueck").onclick = ansichtNeu;
+  }catch(err){ $("#app").innerHTML += `<div class="fehler">${esc(err.message)}</div>`; }
+}
+
 function zeigeKonto(){
   const st = standText();
   const s = sheet(`<div class="sheet-kopf"><div><h2>${esc(nutzerName() || "Konto")}</h2></div><button class="sheet-zu" aria-label="Schließen">×</button></div>
+    <button class="knopf voll" id="zum-profil" style="margin-bottom:18px">Mein Trainingsprofil</button>
     <div class="augenbraue" style="margin:4px 0 8px">Farbschema</div>
     <div class="thema-wahl">${Object.entries(THEMEN).map(([k, t]) => `<button data-thema="${k}" class="${aktuellesThema()===k ? "an" : ""}"><i style="background:${t.vorschau}"></i>${t.name}</button>`).join("")}</div>
     <div class="augenbraue" style="margin:4px 0 8px">Rad-Schwelle standardmäßig</div>
     <div class="ort-wahl gross" id="ort-standard">${["drinnen","draussen"].map(o => `<button data-standard="${o}" class="${((zustand.einstellungen||{}).rad_ort || "draussen")===o ? "an" : ""}">${o==="drinnen" ? "Drinnen (Ergometer)" : "Draußen"}</button>`).join("")}</div>
     <p class="klein-grau" style="margin:0 0 16px">${st ? "Daten zuletzt von Garmin geholt: " + esc(st) + "." : ""}</p>
     <button class="knopf hell voll" id="token-weg">Token auf diesem Gerät entfernen</button>`);
+  s.querySelector("#zum-profil").onclick = zeigeProfil;
   s.querySelectorAll("[data-standard]").forEach(b => b.onclick = async () => {
     if(b.classList.contains("an")) return;
     try{
@@ -2966,7 +3025,7 @@ function gefuehlKarte(){
 
 
 // ---------- Triathlon-Readiness: Kann ich die olympische Distanz schaffen – heute und im Juni? ----------
-const OLY = {schwimmen:1.5, rad:40, laufen:10};
+const OLY = {schwimmen:1.5, rad:44, laufen:10}; // Würzburg: 1,5 / 44 / 10 km
 function triReadiness(){
   const akt = zustand.aktivitaeten;
   const ab6 = plusTage(HEUTE, -41);
@@ -2980,7 +3039,7 @@ function triReadiness(){
   const d = {
     schwimmen:{name:"Schwimmen", ziel_text:"1,5 km", ziel: OLY.schwimmen, einheit:"km",
       jetzt: Math.max(0, ...letzte("schwimmen").map(a => a.distanz_km || 0)), wk_min: OLY.schwimmen * swimPace},
-    rad:{name:"Rad", ziel_text:`40 km ≈ ${Math.round(OLY.rad / kmh * 60)} min`, ziel: OLY.rad / kmh * 60, einheit:"min",
+    rad:{name:"Rad", ziel_text:`${OLY.rad} km ≈ ${Math.round(OLY.rad / kmh * 60)} min`, ziel: OLY.rad / kmh * 60, einheit:"min",
       jetzt: Math.max(0, ...letzte("rad").map(a => a.dauer_min || 0)), wk_min: OLY.rad / kmh * 60},
     laufen:{name:"Laufen", ziel_text:`10 km ≈ ${Math.round(OLY.laufen * tempo)} min`, ziel: OLY.laufen * tempo, einheit:"min",
       // Laufen: aktueller Stand wie im Laufaufbau (längster Lauf der letzten 14 Tage), wegen Knie-Comeback
