@@ -2554,10 +2554,17 @@ function baueWoche(){
   const vorhanden = [...festAlle];
   // Offene eingetragene Einheiten an Tagen ohne (genug) Zeit werden mit umgeplant
   const man = wp.manuell || {};
-  const fest = [], beweglich = [];
+  const fest = [], beweglich = [], entfernen = [];
+  // Typ aus der ID lesen („2026-11-23-reise“ → „reise“), damit eine Neuplanung Einträge der ersten Planung wiedererkennt
+  const typVon = e => String(e.id).replace(/^\d{4}-\d{2}-\d{2}-/, "");
   tage.forEach((d, i) => {
     const cap = ZEIT[wp.verf[i].zeit].min; let summe = 0;
     for(const e of festAlle.filter(x => x.datum===d)){
+      // „Kurze Bewegung (Reisetag)“ gehört fest zu ihrem Tag: nie auf andere Tage schieben
+      if(typVon(e)==="reise" && !erledigtDurch(e)){
+        if(wp.verf[i].reise) fest.push(e); else entfernen.push(e);
+        continue;
+      }
       if(!erledigtDurch(e) && man[e.id] && man[e.id]!==e.datum) beweglich.push(e);   // von Hand woandershin gelegt
       else if(!erledigtDurch(e) && !man[e.id] && (cap===0 || summe + minuten(e) > cap)) beweglich.push(e);
       else { fest.push(e); summe += minuten(e); }
@@ -2565,11 +2572,12 @@ function baueWoche(){
   });
   const nimmFest = (pred) => { const i = vorhanden.findIndex(pred); if(i<0) return false; vorhanden.splice(i,1); return true; };
   const offen = liste.filter(v => !(
+      nimmFest(e => e.woche===wp.ziel && typVon(e)===v.typ) || (   // schon einmal für diese Woche geplant
       v.art ? nimmFest(e => e.art===v.art)
     : v.typ.startsWith("lauf") ? nimmFest(e => e.sport==="laufen")
     : v.typ==="schwimmen" ? nimmFest(e => e.sport==="schwimmen")
-    : v.typ==="rad_lang" ? nimmFest(e => e.sport==="rad" && !e.art && minuten(e) >= 75)
-    : false));
+    : v.typ==="rad_lang" ? nimmFest(e => e.sport==="rad" && !e.art && (typVon(e)==="rad_lang" || minuten(e) >= 75))
+    : false)));
   const neu = [], nichtUntergebracht = [];
   const belegt = d => [...fest, ...neu].filter(e => e.datum===d);
   const kapazitaet = d => ZEIT[wp.verf[tage.indexOf(d)].zeit].min;
@@ -2621,7 +2629,7 @@ function baueWoche(){
     return {...rest, id:`${e.datum}-${typ}`, status:"geplant", woche: wp.ziel};
   }).sort((a,b) => a.datum < b.datum ? -1 : 1);
   fest.forEach(e => { e._key = e.id; });
-  return {eintraege, fest, nichtUntergebracht, info};
+  return {eintraege, fest, nichtUntergebracht, entfernen, info};
 }
 
 // ---------- Ansicht ----------
@@ -2793,7 +2801,8 @@ async function speichereWoche(){
     const verschoben = new Map(g.eintraege.filter(e => e._bestehend).map(e => [e.id, sauber(e)]));
     zustand.plan = await aendere("daten/plan.json", [], plan => {
       const ids = new Set(plan.map(e => e.id));
-      return plan.map(e => verschoben.get(e.id) || e)
+      const weg = new Set((g.entfernen || []).map(e => e.id));
+      return plan.map(e => weg.has(e.id) ? {...e, status:"gestrichen"} : (verschoben.get(e.id) || e))
         .concat(g.eintraege.filter(e => !e._bestehend && !ids.has(e.id)).map(sauber))
         .sort((a,b) => a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0);
     }, `Wochenplanung ${wp.ziel}: ${g.eintraege.length} Einheiten`);
