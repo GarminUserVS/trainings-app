@@ -2644,7 +2644,8 @@ function baueWoche(){
     const naehe = [0,1,-1,2,-2,3,-3,4,-4,5,-5,6,-6].map(k => v.tag + k).filter(t => t>=0 && t<7);
     // Wetter: Läufe und Radfahrten lieber an trockenen Tagen (1 Tag weiter weg zählt wie 1 Punkt Wettermalus).
     // Die Regeln (Pausen nach harten Einheiten usw.) prüft passt() trotzdem für jeden Tag.
-    const wetter = wp.wetter && draussenMoeglich(v);
+    // Radeinheiten werden wegen Wetter nicht verschoben, sondern an Regentagen drinnen gefahren
+    const wetter = wp.wetter && draussenMoeglich(v) && v.sport!=="rad";
     const wert = t => Math.abs(t - v.tag) + (wetter ? wetterMalus(wp.wetter[tage[t]]) : 0);
     const nachWetter = l => wetter ? [...l].sort((a, b) => wert(a) - wert(b)) : l;
     const kandidaten = v.prio <= 5 ? [...nachWetter(naehe.filter(t => !wp.verf[t].spontan)), ...nachWetter(naehe.filter(t => wp.verf[t].spontan))] : nachWetter(naehe);
@@ -2663,7 +2664,10 @@ function baueWoche(){
     if(wp.verf[tagIndex].spontan){ e.details = [...e.details, `${WOCHENTAGE_LANG[tagIndex]} spontan – nur wenn es passt`]; e.optional = true; }
     const w = wp.wetter && draussenMoeglich(e) && !v.bestehend ? wp.wetter[ziel] : null;
     if(w){
-      if(hatOrtWahl(e) && wetterMalus(w) >= 1.5){ e.ort = "drinnen"; e.details = [...e.details, `Regen vorhergesagt (${wetterKurz(w)}) – drinnen eingeplant`]; }
+      if(e.sport==="rad" && wetterMalus(w) >= 1.5){
+        if(hatOrtWahl(e)) e.ort = "drinnen";
+        e.details = [...e.details, `Regen vorhergesagt (${wetterKurz(w)}) – drinnen auf dem Ergometer fahren`];
+      }
       else e.details = [...e.details, `Wetter laut Vorhersage beim Planen: ${wetterKurz(w)}`];
     }
     neu.push({...e, datum: ziel, _key: schluessel(v)});
@@ -2767,7 +2771,7 @@ function zeichneWochenplanung(){
       const zeilen = [...f.map(e => ({e, fest:true})), ...n.map(e => ({e, fest:false}))].map(({e, fest}) => {
         const meta = [e.dauer_min ? e.dauer_min + " min" : (e.umfang || ""),
           fest ? "schon eingetragen" : "", e._bestehend ? `verschoben von ${datumKurz(e._vorher)}` : "",
-          fest && wp.wetter && draussenMoeglich(e) && wetterMalus(wp.wetter[d]) >= 1.5 ? "Regen vorhergesagt – evtl. verschieben" : "",
+          fest && wp.wetter && draussenMoeglich(e) && wetterMalus(wp.wetter[d]) >= 1.5 ? (e.sport==="rad" ? "Regen vorhergesagt – lieber drinnen" : "Regen vorhergesagt") : "",
           e.verkuerzt && !fest ? "gekürzt" : "", e.optional ? "spontan" : "", e._manuell ? "von dir gesetzt" : ""].filter(Boolean).join(" · ");
         return `<div class="wp-einheit ${fest?"fest":""} ${e.optional?"optional":""} ${e._manuell?"manuell":""}" data-wp-key="${esc(e._key || e.id)}" role="button" tabindex="0">
           ${sportIc(e.sport, 18)}
@@ -2782,7 +2786,7 @@ function zeichneWochenplanung(){
       return `<div class="wp-vtag ${geaendert ? "geaendert" : ""}"><div class="wp-tag-name">${datumKurz(d)}${wtHtml}${v.zeit!=="normal" ? `<span>${ZEIT[v.zeit].l}${v.reise ? " · Reise" : ""}</span>` : v.reise ? "<span>Reise</span>" : ""}</div><div>${zeilen || `<span class="leer">${v.zeit==="keine" ? "Keine Zeit" : "Ruhetag"}</span>`}</div></div>`;
     }).join("")}
     ${g.nichtUntergebracht.length ? `<div class="warnung"><b>Nicht untergebracht:</b> ${esc(g.nichtUntergebracht.map(x => x.titel).join(", "))} – zu wenig Zeit oder Regelkonflikt. Mehr Zeit freigeben oder später im Kalender hinzufügen.</div>` : ""}
-    <p class="klein-grau" style="margin:10px 0 0">${wp.wetter ? `Wetter ${WETTER_ORT.name} (${WETTER_ORT.plz}) berücksichtigt: Läufe und Radfahrten liegen möglichst an trockenen Tagen, Pausen zwischen harten Einheiten haben Vorrang.` : "Keine Wettervorhersage verfügbar – ganz normal geplant."}</p>
+    <p class="klein-grau" style="margin:10px 0 0">${wp.wetter ? `Wetter ${WETTER_ORT.name} (${WETTER_ORT.plz}) berücksichtigt: Läufe liegen möglichst an trockenen Tagen, Radeinheiten an Regentagen drinnen. Pausen zwischen harten Einheiten haben Vorrang.` : "Keine Wettervorhersage verfügbar – ganz normal geplant."}</p>
     <p class="klein-grau" style="margin:6px 0 0">Tippe auf eine Einheit, um sie auf einen anderen Tag zu legen.</p>
     <p class="klein-grau" style="margin:6px 0 0">Lauf-Basis: ${g.info.laufBasis} min${g.info.lauf2 > g.info.lauf1 ? ` → Lauf 2 mit ${g.info.lauf2} min (+10 %)` : g.info.knieOk ? "" : " (keine Steigerung: Knie war auffällig)"} · Rad lang: ${g.info.radLang} min${g.info.schwelleMehr ? " · Schwelle: 3×10 statt 3×8 min" : ""}</p>
   </div>`;
