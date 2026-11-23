@@ -191,6 +191,15 @@ ul.punkte li{margin:3px 0}
 .zonen{display:flex;flex-direction:column;gap:6px}
 .zone{display:grid;grid-template-columns:28px 1fr 56px;gap:8px;align-items:center;font-size:13px;color:var(--grau)}
 .zone-min{text-align:right}
+.r-tabelle{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.r-tabelle th{font-weight:600;color:var(--grau);text-align:right;padding:4px 4px 6px;font-size:12px}
+.r-tabelle td{text-align:right;padding:6px 4px;border-top:1px solid var(--linie);vertical-align:top}
+.r-tabelle th:first-child,.r-tabelle td:first-child{text-align:left;padding-left:0}
+.r-tabelle tr.r-iv td{font-weight:600}
+.r-tabelle tr.r-iv td:first-child{color:var(--pflaume)}
+.r-tabelle tr.r-pause td{color:var(--grau)}
+.r-tabelle td.r-warn{color:#C21F4B;font-weight:700}
+.r-unter{display:block;font-size:12px;color:var(--grau);font-weight:400;margin-top:1px}
 .wp-vtag .wp-tag-name .wp-wetter{display:block;font-size:12px;font-weight:500;color:var(--grau);margin-top:2px;white-space:nowrap}
 .wp-vtag .wp-tag-name .wp-wetter.nass{color:#1F5F9E;font-weight:600}
 .d-uebung{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--linie);font-size:14px}
@@ -1934,13 +1943,18 @@ function zonenHtml(z){
       <div class="spur klein"><i style="width:${Math.round(100*m/summe)}%;background:${farben[i]}"></i></div>
       <span class="zone-min">${Math.round(m)} min</span></div>`).join("")}</div></div>`;
 }
-function aktivitaetHtml(a){
+function aktivitaetHtml(a, e){
   const zahl = x => String(Math.round(x*10)/10).replace(".", ",");
   const werte = [
     ["Dauer", Math.round(a.dauer_min||0) + " min"],
     a.distanz_km ? ["Distanz", zahl(a.distanz_km) + " km"] : null,
     a.sport==="laufen" && a.distanz_km && a.dauer_min ? ["Pace", (() => { const p = a.dauer_min/a.distanz_km; return Math.floor(p) + ":" + String(Math.round((p%1)*60)).padStart(2,"0") + " /km"; })()] : null,
-    a.sport==="schwimmen" && a.distanz_km && a.dauer_min ? ["Pace", (() => { const p = a.dauer_min/(a.distanz_km*10); return Math.floor(p) + ":" + String(Math.round((p%1)*60)).padStart(2,"0") + " /100 m"; })()] : null,
+    a.sport==="schwimmen" && a.distanz_km && a.dauer_min ? (() => {
+      // Mit Runden: Tempo ohne Pausen am Beckenrand, sonst über die Gesamtzeit
+      const aktiv = (a.runden || []).filter(x => !x.pause && x.distanz_m);
+      const s = aktiv.reduce((t,x) => t + x.dauer_s, 0), m = aktiv.reduce((t,x) => t + x.distanz_m, 0);
+      const p = s && m ? s/60/(m/100) : a.dauer_min/(a.distanz_km*10);
+      return [s && m ? "Pace ohne Pausen" : "Pace", Math.floor(p) + ":" + String(Math.round((p%1)*60)).padStart(2,"0") + " /100 m"]; })() : null,
     a.puls_avg ? ["Ø Puls", Math.round(a.puls_avg) + " bpm"] : null,
     a.puls_max ? ["Max. Puls", Math.round(a.puls_max) + " bpm"] : null,
     a.last ? ["Trainingslast", Math.round(a.last)] : null,
@@ -1948,7 +1962,7 @@ function aktivitaetHtml(a){
   ].filter(Boolean);
   return `<div class="d-abschnitt"><div class="augenbraue">Laut Garmin · ${esc(a.start || "")} Uhr</div>
     <div class="d-werte">${werte.map(([k,v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div></div>
-    ${zonenHtml(a.zonen_min)}`;
+    ${rundenHtml(a, e)}${zonenHtml(a.zonen_min)}`;
 }
 
 // ---------- Einordnung eines Trainings: Plan, Ampel, Knie-Aufbau und Vergleich mit den letzten Einheiten ----------
@@ -1967,8 +1981,151 @@ function pulsZiel(e){
   }
   return null;
 }
+// ---------- Runden / Intervalle / Schwimmserien aus der FIT-Datei ----------
+const zeitText = s => { s = Math.round(s); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+const pro100Text = v => v ? zeitText(100/v) : "–";     // Schwimmen: min/100 m aus m/s
+const proKmText = v => v ? zeitText(1000/v) : "–";     // Laufen: min/km aus m/s
+// Geplante Intervalle aus dem Plan lesen, z. B. „3×8 min“ oder „2×15 min“
+function intervallPlan(e){
+  if(!e) return null;
+  for(const t of [].concat(e.details || []).map(String)){
+    const m = t.match(/(\d+)\s*[×x]\s*(\d+)\s*min/);
+    if(m) return {anzahl:+m[1], min:+m[2]};
+  }
+  return null;
+}
+// Bei harten Einheiten: welche Runden sind die Intervalle? (Puls-Cluster oben, mind. 2 min lang)
+function intervalle(a, e){
+  const r = (a.runden || []).map((x, i) => ({...x, i}));
+  if(r.length < 3 || !e || (e.intensitaet!=="hart" && e.art!=="rad_schwelle") || a.sport==="schwimmen") return null;
+  const kand = r.filter(x => !x.pause && x.dauer_s >= 120 && x.puls);
+  if(kand.length < 2) return null;
+  const hrs = kand.map(x => x.puls), mitte = (Math.min(...hrs) + Math.max(...hrs)) / 2;
+  const iv = kand.filter(x => x.puls >= mitte && x.i !== r[0].i);
+  if(!iv.length || iv.length === kand.length) return null;
+  return iv;
+}
+// Schwimmen: aufeinanderfolgende gleich lange Strecken zu Serien zusammenfassen (Pausen dazwischen)
+function schwimmSerien(a){
+  const r = a.runden || [], serien = [];
+  let pause = null;
+  for(const x of r){
+    if(x.pause || !x.distanz_m){ pause = (pause || 0) + x.dauer_s; continue; }
+    const letzte = serien[serien.length - 1];
+    if(letzte && letzte.distanz===x.distanz_m && pause !== null){
+      letzte.teile.push(x); letzte.pausen.push(pause);
+    } else serien.push({distanz:x.distanz_m, teile:[x], pausen:[]});
+    pause = 0;
+  }
+  return serien.map(s => {
+    const tempi = s.teile.map(x => x.tempo_ms).filter(Boolean);
+    const lagen = s.teile.map(x => x.lage).filter(Boolean);
+    const zuege = s.teile.map(x => x.zuege_bahn).filter(Boolean);
+    return {...s, n:s.teile.length,
+      tempo_min: tempi.length ? Math.min(...tempi) : null, tempo_max: tempi.length ? Math.max(...tempi) : null,
+      puls: Math.round(s.teile.reduce((t,x) => t + (x.puls||0), 0) / s.teile.length) || null,
+      lage: lagen.length ? lagen.sort((p,q) => lagen.filter(v=>v===q).length - lagen.filter(v=>v===p).length)[0] : null,
+      zuege: zuege.length ? Math.round(10 * zuege.reduce((t,x)=>t+x,0) / zuege.length) / 10 : null};
+  });
+}
+const LAGE_NAMEN = {kraul:"Kraul", brust:"Brust", ruecken:"Rücken", schmetterling:"Delfin", drill:"Technik", gemischt:"gemischt", lagen:"Lagen"};
+function rundenHtml(a, e){
+  const r = a.runden || [];
+  if(r.length < 2) return "";
+  if(a.sport==="schwimmen"){
+    const serien = schwimmSerien(a);
+    if(!serien.length) return "";
+    const zeilen = serien.map(s => {
+      const tempo = s.tempo_min===s.tempo_max ? pro100Text(s.tempo_min) : `${pro100Text(s.tempo_max)}–${pro100Text(s.tempo_min)}`;
+      const p = s.pausen.length ? (Math.min(...s.pausen)===Math.max(...s.pausen) ? zeitText(s.pausen[0]) : `${zeitText(Math.min(...s.pausen))}–${zeitText(Math.max(...s.pausen))}`) : "";
+      return `<tr><td><b>${s.n > 1 ? s.n + "×" : ""}${fmtZahl(s.distanz)} m</b>${s.lage ? `<span class="r-unter">${esc(LAGE_NAMEN[s.lage] || s.lage)}${s.zuege ? " · " + fmtZahl(s.zuege) + " Züge/Bahn" : ""}</span>` : ""}</td>
+        <td>${tempo}</td><td>${p}</td><td>${s.puls || "–"}</td></tr>`;
+    }).join("");
+    return `<div class="d-abschnitt"><div class="augenbraue">Serien</div>
+      <table class="r-tabelle"><tr><th>Strecke</th><th>/100 m</th><th>Pause</th><th>Ø Puls</th></tr>${zeilen}</table></div>`;
+  }
+  const iv = intervalle(a, e), ivIdx = new Set((iv || []).map(x => x.i));
+  const ziel = pulsZiel(e), locker = e ? e.intensitaet==="locker" : a.sport==="laufen";
+  let km = 0, nIv = 0, ersterIv = iv ? iv[0].i : -1, letzterIv = iv ? iv[iv.length-1].i : -1;
+  const zeilen = r.map((x, i) => ({...x, i})).filter(x => x.dauer_s >= 20 || x.pause).map(x => {
+    km += (x.distanz_m || 0) / 1000;
+    let name = String(x.i + 1), klasse = "";
+    if(iv){
+      if(ivIdx.has(x.i)){ name = "Intervall " + (++nIv); klasse = "r-iv"; }
+      else if(x.i < ersterIv) name = "Einfahren";
+      else if(x.i > letzterIv && x.i === r.length - 1) name = a.sport==="laufen" ? "Auslaufen" : "Ausfahren";
+      else if(x.i > letzterIv){ name = "Locker"; klasse = "r-pause"; }
+      else { name = "Pause"; klasse = "r-pause"; }
+    } else if(x.pause){ name = "Pause"; klasse = "r-pause"; }
+    else if(a.sport==="laufen" && x.distanz_m) name = (Math.abs(km - Math.round(km)) < 0.02 ? Math.round(km) : fmtZahl(Math.round(km*100)/100)) + " km";
+    const tempo = a.sport==="laufen" ? proKmText(x.tempo_ms) + " /km"
+      : (x.tempo_ms && a.typ!=="indoor_cycling" ? fmtZahl(Math.round(x.tempo_ms*36)/10) + " km/h" : "");
+    const hoch = ziel && x.puls && !x.pause && ((locker && x.puls > ziel.bis + 2) || (ivIdx.has(x.i) && (x.puls < ziel.von - 2 || x.puls > ziel.bis + 2)));
+    return `<tr class="${klasse}"><td>${esc(name)}</td><td>${zeitText(x.dauer_s)}</td>${tempo !== "" || a.sport==="laufen" ? `<td>${tempo}</td>` : ""}
+      <td class="${hoch ? "r-warn" : ""}">${x.puls || "–"}</td><td>${x.puls_max || "–"}</td></tr>`;
+  }).join("");
+  const mitTempo = a.sport==="laufen" || (a.typ!=="indoor_cycling" && r.some(x => x.tempo_ms));
+  return `<div class="d-abschnitt"><div class="augenbraue">${iv ? "Intervalle" : "Runden"}${ziel ? ` · Ziel ${esc(ziel.text)} bpm` : ""}</div>
+    <table class="r-tabelle"><tr><th></th><th>Zeit</th>${mitTempo ? `<th>${a.sport==="laufen" ? "Pace" : "Tempo"}</th>` : ""}<th>Ø Puls</th><th>Max</th></tr>${zeilen}</table></div>`;
+}
+// Einordnung aus den Runden: Intervalle im Ziel? Locker wirklich locker? Schwimmserien
+function rundenEinordnung(a, e, plus, minus, info){
+  const r = a.runden || [];
+  if(r.length < 2) return {};
+  const ziel = pulsZiel(e);
+  const iv = intervalle(a, e);
+  if(iv){
+    const plan = intervallPlan(e), hrs = iv.map(x => x.puls), liste = hrs.join(" · ");
+    if(plan && iv.length < plan.anzahl) info.push(`${iv.length} von ${plan.anzahl} geplanten Intervallen`);
+    if(plan){ const kurz = iv.filter(x => x.dauer_s < plan.min*60*0.85);
+      if(kurz.length) info.push(`${kurz.length === 1 ? "Ein Intervall war" : kurz.length + " Intervalle waren"} kürzer als ${plan.min} min`); }
+    if(ziel){
+      const drin = iv.filter(x => x.puls >= ziel.von - 2 && x.puls <= ziel.bis + 2).length;
+      const unter = iv.filter(x => x.puls < ziel.von - 2), ueber = iv.filter(x => x.puls > ziel.bis + 2);
+      if(drin === iv.length) plus.push(`Alle ${iv.length} Intervalle im Zielbereich: Ø ${liste} bpm (Ziel ${ziel.text})`);
+      else if(ueber.length) info.push(`Intervalle Ø ${liste} bpm (Ziel ${ziel.text}) – ${ueber.length === 1 ? "eins lag" : ueber.length + " lagen"} drüber. Gleichmäßiger einteilen, sonst wird aus Schwelle ein VO2max-Reiz`);
+      else if(unter.every(x => x.puls >= ziel.von - 8)) info.push(`Intervalle knapp unter dem Ziel: Ø ${liste} bpm (Ziel ${ziel.text}). Der Puls braucht 1–2 min zum Ansteigen – nächstes Mal einen Tick fester`);
+      else info.push(`Intervalle deutlich unter dem Ziel: Ø ${liste} bpm (Ziel ${ziel.text}) – der Schwellenreiz war eher klein`);
+    }
+    if(iv.length >= 2 && Math.max(...hrs) - Math.min(...hrs) <= 4) plus.push("Sehr gleichmäßig über alle Intervalle");
+    return {intervalle: true};
+  }
+  const locker = e ? e.intensitaet==="locker" : a.sport==="laufen";
+  if(locker && ziel && ziel.bis && a.sport==="laufen"){
+    let km = 0, ab = null, spitze = 0;
+    for(const x of r){
+      km += (x.distanz_m || 0) / 1000;
+      if(x.puls > ziel.bis + 2 && !x.pause){ if(ab === null) ab = Math.max(1, Math.ceil(km - (x.distanz_m||0)/1000 + 0.01)); spitze = Math.max(spitze, x.puls); }
+    }
+    const letzte = r[r.length-1], davor = r.slice(0, -1).filter(x => x.tempo_ms);
+    const tempoDavor = davor.length ? davor.reduce((t,x) => t + x.tempo_ms, 0) / davor.length : null;
+    const endspurt = letzte.tempo_ms && tempoDavor && letzte.tempo_ms > tempoDavor * 1.04 && letzte.puls > ziel.bis;
+    const text = ab !== null ? `ab km ${ab} lag der Puls über ${ziel.bis} (Runden bis Ø ${spitze})` : "";
+    return {lauf_ab: text, endspurt: endspurt ? `Am Ende angezogen (${proKmText(letzte.tempo_ms)} /km, Ø ${letzte.puls} bpm) – lockere Läufe lieber gleichmäßig ausrollen lassen` : ""};
+  }
+  if(a.sport==="schwimmen"){
+    const serien = schwimmSerien(a).filter(s => s.n >= 2);
+    if(!serien.length) return {};
+    const haupt = serien.reduce((b, s) => s.n * s.distanz > b.n * b.distanz ? s : b);
+    const spanne = haupt.tempo_min && haupt.tempo_max ? 100/haupt.tempo_min - 100/haupt.tempo_max : null;
+    info.push(`Hauptserie ${haupt.n}×${haupt.distanz} m in ${pro100Text(haupt.tempo_max)}–${pro100Text(haupt.tempo_min)} /100 m`);
+    if(spanne !== null && spanne <= 6) plus.push(`Gleichmäßig geschwommen: alle ${haupt.n}×${haupt.distanz} m innerhalb von ${Math.round(spanne)} s/100 m`);
+    // geplante Pause, z. B. „4×150 m zügig in Grundlage (20 s Pause)“
+    const planText = e ? [].concat(e.details || []).map(String).find(t => new RegExp(`×\\s*${haupt.distanz}\\s*m`).test(t)) : null;
+    const pPlan = planText && planText.match(/(\d+)\s*s\s*Pause/);
+    if(pPlan && haupt.pausen.length){
+      const pAvg = haupt.pausen.reduce((t,x) => t+x, 0) / haupt.pausen.length;
+      if(pAvg > 2 * +pPlan[1] && pAvg - +pPlan[1] > 20) info.push(`Pausen in der Hauptserie Ø ${zeitText(pAvg)} statt ${pPlan[1]} s – kürzere Pausen machen sie zur echten Ausdauerserie`);
+      else plus.push(`Pausen wie geplant (Ø ${Math.round(pAvg)} s)`);
+    }
+    if(serien.some(s => s.distanz >= 100 && s.lage==="drill"))
+      info.push("Die Uhr stand bei längeren Strecken im Technikmodus – Züge und SWOLF fehlen. Nach den Technik-Bahnen zurück in den normalen Schwimmmodus wechseln");
+  }
+  return {};
+}
 function einordnung(a, e){
   const plus = [], minus = [], info = [];
+  const rr = rundenEinordnung(a, e, plus, minus, info);
   const z = a.zonen_min || [], zSumme = z.reduce((x,y)=>x+(y||0),0);
   const z12 = zSumme ? ((z[0]||0)+(z[1]||0)) / zSumme : null, z45 = zSumme ? ((z[3]||0)+(z[4]||0)) / zSumme : null;
   const pct = x => Math.round(x*100) + " %";
@@ -1989,14 +2146,15 @@ function einordnung(a, e){
       // Vorgabe aus dem Plan geht vor Garmins Standard-Zonen
       if(a.puls_avg <= ziel.bis && (!a.puls_max || a.puls_max <= ziel.bis + 10))
         plus.push(`Locker geblieben: Ø Puls ${Math.round(a.puls_avg)}, Vorgabe ${ziel.text}` + (a.puls_avg < ziel.von ? " – sogar etwas ruhiger als nötig" : ""));
-      else if(a.puls_avg <= ziel.bis) info.push(`Ø Puls ${Math.round(a.puls_avg)} passt zur Vorgabe ${ziel.text}, aber zwischendurch bis ${Math.round(a.puls_max)}`);
-      else minus.push(`Puls höher als vorgegeben: Ø ${Math.round(a.puls_avg)} statt ${ziel.text}`);
+      else if(a.puls_avg <= ziel.bis) info.push(rr.lauf_ab ? `Ø Puls ${Math.round(a.puls_avg)} passt zur Vorgabe ${ziel.text}, aber ${rr.lauf_ab}` : `Ø Puls ${Math.round(a.puls_avg)} passt zur Vorgabe ${ziel.text}, aber zwischendurch bis ${Math.round(a.puls_max)}`);
+      else minus.push(`Puls höher als vorgegeben: Ø ${Math.round(a.puls_avg)} statt ${ziel.text}` + (rr.lauf_ab ? ` – ${rr.lauf_ab}` : ""));
+      if(rr.endspurt) info.push(rr.endspurt);
     } else if(z12!==null && gemeint==="locker" && a.sport!=="kraft"){
       if(z12 >= 0.8) plus.push(`Wirklich locker geblieben: ${pct(z12)} in Zone 1–2`);
       else if(z12 < 0.6) minus.push(`Für eine lockere Einheit zu intensiv: nur ${pct(z12)} in Zone 1–2`);
       else info.push(`${pct(z12)} in Zone 1–2 – beim nächsten Mal etwas ruhiger`);
     }
-    if(e && z45!==null && (e.intensitaet==="hart" || e.art==="rad_schwelle") && a.sport!=="kraft"){
+    if(!rr.intervalle && e && z45!==null && (e.intensitaet==="hart" || e.art==="rad_schwelle") && a.sport!=="kraft"){
       z45 >= 0.15 ? plus.push(`Harter Reiz gesetzt: ${pct(z45)} in Zone 4–5`) : info.push(`Nur ${pct(z45)} in Zone 4–5 – der harte Reiz war eher klein`);
     }
   }
@@ -2141,7 +2299,7 @@ function detailKarte(){
     ${verlauf.length ? `<div class="d-verlauf">${verlauf.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
     ${e.notiz ? `<div class="d-notiz"><b>Notiz:</b> ${esc(e.notiz)}</div>` : ""}
     ${fertig ? einordnungHtml(fertig, e) : ""}
-    ${(() => { const spalten = [varianten, (fertig ? aktivitaetHtml(fertig) : "") + kraftHtml(e)].filter(Boolean);
+    ${(() => { const spalten = [varianten, (fertig ? aktivitaetHtml(fertig, e) : "") + kraftHtml(e)].filter(Boolean);
       return `<div class="d-raster ${spalten.length < 2 ? "einspaltig" : ""}">${spalten.map(x => `<div>${x}</div>`).join("")}</div>`; })()}
     <div class="d-aktionen">
       ${kraftKnopf}
