@@ -191,6 +191,8 @@ ul.punkte li{margin:3px 0}
 .zonen{display:flex;flex-direction:column;gap:6px}
 .zone{display:grid;grid-template-columns:28px 1fr 56px;gap:8px;align-items:center;font-size:13px;color:var(--grau)}
 .zone-min{text-align:right}
+.wp-vtag .wp-tag-name .wp-wetter{display:block;font-size:12px;font-weight:500;color:var(--grau);margin-top:2px;white-space:nowrap}
+.wp-vtag .wp-tag-name .wp-wetter.nass{color:#1F5F9E;font-weight:600}
 .d-uebung{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--linie);font-size:14px}
 .d-uebung b{text-align:right}
 .u-extras{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -2545,6 +2547,45 @@ function vorlagen(modus, r){
   return {liste: L, info:{laufBasis, lauf1, lauf2, radBasis, radLang, knieOk, schwelleMehr}};
 }
 
+// ---------- Wetter (Open-Meteo, kostenlos, ohne Schlüssel) ----------
+// Läufe und Radfahrten bevorzugt an trockenen Tagen. Ohne Vorhersage wird ganz normal geplant.
+const WETTER_ORT = {name:"Wertheim", plz:"97877", lat:49.759, lon:9.517};
+const WETTER_CODES = [[0,"klar","☀️"],[2,"heiter","🌤️"],[3,"bewölkt","☁️"],[48,"Nebel","🌫️"],[57,"Niesel","🌦️"],[67,"Regen","🌧️"],
+  [77,"Schnee","🌨️"],[82,"Schauer","🌦️"],[86,"Schneeschauer","🌨️"],[99,"Gewitter","⛈️"]];
+async function ladeWetter(start){
+  const ende = plusTage(start, 6);
+  if(tageZwischen(HEUTE, start) > 14 || ende < HEUTE) return null;   // Vorhersage reicht ca. 16 Tage
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${WETTER_ORT.lat}&longitude=${WETTER_ORT.lon}`
+    + `&daily=weather_code,temperature_2m_max,precipitation_sum,precipitation_probability_max,sunshine_duration`
+    + `&timezone=Europe%2FBerlin&start_date=${start < HEUTE ? HEUTE : start}&end_date=${ende}`;
+  try{
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
+    const r = await fetch(url, {signal: ctrl.signal}); clearTimeout(t);
+    if(!r.ok) return null;
+    const d = (await r.json()).daily; const aus = {};
+    d.time.forEach((tag, i) => {
+      const code = d.weather_code[i], art = WETTER_CODES.find(([c]) => code <= c) || WETTER_CODES[WETTER_CODES.length-1];
+      aus[tag] = {code, text: art[1], icon: art[2], tmax: d.temperature_2m_max[i], regen_mm: d.precipitation_sum[i] || 0,
+                  regen_p: d.precipitation_probability_max[i], sonne_h: (d.sunshine_duration[i] || 0) / 3600};
+    });
+    return aus;
+  }catch(err){ return null; }
+}
+// Wie ungünstig ist der Tag für draußen? 0 = gut, 1,5 = Schauer möglich, 3 = Regen/Schnee/Gewitter
+function wetterMalus(w){
+  if(!w) return 0;
+  const glatt = (w.code >= 66 && w.code <= 77) || w.code === 85 || w.code === 86, gewitter = w.code >= 95;
+  if(glatt || gewitter || (w.regen_p ?? 0) >= 70 || w.regen_mm >= 5) return 3;
+  if((w.regen_p ?? 0) >= 40 || w.regen_mm >= 1) return 1.5;
+  return w.sonne_h >= 4 ? -0.5 : 0;
+}
+function wetterKurz(w){
+  if(!w) return "";
+  const regen = w.regen_mm >= 0.5 || (w.regen_p ?? 0) >= 40 ? `, Regen ${w.regen_p ?? "?"} %` : w.sonne_h >= 2 ? `, ${Math.round(w.sonne_h)} h Sonne` : "";
+  return `${Math.round(w.tmax)}°, ${w.text}${regen}`;
+}
+const draussenMoeglich = v => v.sport==="laufen" || (v.sport==="rad" && (!hatOrtWahl(v) || radOrt(v)==="draussen"));
+
 function baueWoche(){
   const r = wp.rueck, modus = wp.modus;
   const {liste, info} = vorlagen(modus, r);
@@ -2601,7 +2642,12 @@ function baueWoche(){
     }
     // Schlüsseleinheiten (Kraft A, Schwelle, Läufe, langes Rad) erst auf feste Tage, spontane Tage nur notfalls
     const naehe = [0,1,-1,2,-2,3,-3,4,-4,5,-5,6,-6].map(k => v.tag + k).filter(t => t>=0 && t<7);
-    const kandidaten = v.prio <= 5 ? [...naehe.filter(t => !wp.verf[t].spontan), ...naehe.filter(t => wp.verf[t].spontan)] : naehe;
+    // Wetter: Läufe und Radfahrten lieber an trockenen Tagen (1 Tag weiter weg zählt wie 1 Punkt Wettermalus).
+    // Die Regeln (Pausen nach harten Einheiten usw.) prüft passt() trotzdem für jeden Tag.
+    const wetter = wp.wetter && draussenMoeglich(v);
+    const wert = t => Math.abs(t - v.tag) + (wetter ? wetterMalus(wp.wetter[tage[t]]) : 0);
+    const nachWetter = l => wetter ? [...l].sort((a, b) => wert(a) - wert(b)) : l;
+    const kandidaten = v.prio <= 5 ? [...nachWetter(naehe.filter(t => !wp.verf[t].spontan)), ...nachWetter(naehe.filter(t => wp.verf[t].spontan))] : nachWetter(naehe);
     let ziel = kandidaten.map(t => tage[t]).find(d => passt(v, d));
     let e = {...v};
     if(!ziel && v.dauer_min){
@@ -2615,6 +2661,11 @@ function baueWoche(){
     if(!ziel){ nichtUntergebracht.push(v.bestehend ? {...v, titel: `${kurzTitel(v)} (bleibt am ${datumKurz(v.vorher)} – bitte selbst verschieben)`} : v); continue; }
     const tagIndex = tage.indexOf(ziel);
     if(wp.verf[tagIndex].spontan){ e.details = [...e.details, `${WOCHENTAGE_LANG[tagIndex]} spontan – nur wenn es passt`]; e.optional = true; }
+    const w = wp.wetter && draussenMoeglich(e) && !v.bestehend ? wp.wetter[ziel] : null;
+    if(w){
+      if(hatOrtWahl(e) && wetterMalus(w) >= 1.5){ e.ort = "drinnen"; e.details = [...e.details, `Regen vorhergesagt (${wetterKurz(w)}) – drinnen eingeplant`]; }
+      else e.details = [...e.details, `Wetter laut Vorhersage beim Planen: ${wetterKurz(w)}`];
+    }
     neu.push({...e, datum: ziel, _key: schluessel(v)});
   }
   // An Reisetagen ohne Einheit: kurze Bewegung (laut Profil hilft das)
@@ -2639,12 +2690,12 @@ async function zeigeWochenplanung(){
   $("#app").innerHTML = `<div class="karte leer">Lade Rückblick …</div>`;
   const ziel = zielWoche(), rueck = plusTage(ziel, -7);
   const tageR = [...Array(7)].map((_, i) => plusTage(rueck, i));
-  const [tageswerte, wochen, ...berichte] = await Promise.all([
+  const [wetter, tageswerte, wochen, ...berichte] = await Promise.all([ladeWetter(ziel),
     ladeJson("daten/tageswerte.json", []), ladeJson("daten/wochen.json", []),
     ...tageR.map(d => ladeJson("daten/berichte/" + d + ".json", null))]);
   const verfVorher = (wochen.daten.find(w => w.start===ziel) || {}).verfuegbarkeit;
   wp = {ziel, rueckStart: rueck, tage: Object.fromEntries(tageswerte.daten.map(t => [t.datum, t])), wochen: wochen.daten,
-        berichte: Object.fromEntries(tageR.map((d, i) => [d, berichte[i].daten])), gefuehl: null,
+        berichte: Object.fromEntries(tageR.map((d, i) => [d, berichte[i].daten])), gefuehl: null, wetter,
         verf: verfVorher || [...Array(7)].map((_, i) => ({zeit: i===6 ? "viel" : "normal", reise:false, spontan: i===4}))};
   wp.rueck = rueckblick(rueck);
   wp.manuell = {};
@@ -2716,6 +2767,7 @@ function zeichneWochenplanung(){
       const zeilen = [...f.map(e => ({e, fest:true})), ...n.map(e => ({e, fest:false}))].map(({e, fest}) => {
         const meta = [e.dauer_min ? e.dauer_min + " min" : (e.umfang || ""),
           fest ? "schon eingetragen" : "", e._bestehend ? `verschoben von ${datumKurz(e._vorher)}` : "",
+          fest && wp.wetter && draussenMoeglich(e) && wetterMalus(wp.wetter[d]) >= 1.5 ? "Regen vorhergesagt – evtl. verschieben" : "",
           e.verkuerzt && !fest ? "gekürzt" : "", e.optional ? "spontan" : "", e._manuell ? "von dir gesetzt" : ""].filter(Boolean).join(" · ");
         return `<div class="wp-einheit ${fest?"fest":""} ${e.optional?"optional":""} ${e._manuell?"manuell":""}" data-wp-key="${esc(e._key || e.id)}" role="button" tabindex="0">
           ${sportIc(e.sport, 18)}
@@ -2725,10 +2777,13 @@ function zeichneWochenplanung(){
       const geaendert = wp.sig && wp.sig[d]!==undefined && wp.sig[d]!==sig;
       neueSig[d] = sig;
       const v = wp.verf[i];
-      return `<div class="wp-vtag ${geaendert ? "geaendert" : ""}"><div class="wp-tag-name">${datumKurz(d)}${v.zeit!=="normal" ? `<span>${ZEIT[v.zeit].l}${v.reise ? " · Reise" : ""}</span>` : v.reise ? "<span>Reise</span>" : ""}</div><div>${zeilen || `<span class="leer">${v.zeit==="keine" ? "Keine Zeit" : "Ruhetag"}</span>`}</div></div>`;
+      const wt = wp.wetter && wp.wetter[d];
+      const wtHtml = wt ? `<span class="wp-wetter ${wetterMalus(wt) >= 1.5 ? "nass" : ""}" title="${esc(wetterKurz(wt))}">${wt.icon} ${Math.round(wt.tmax)}°${wt.regen_mm >= 0.5 || (wt.regen_p ?? 0) >= 40 ? ` · ${wt.regen_p ?? "?"} %` : ""}</span>` : "";
+      return `<div class="wp-vtag ${geaendert ? "geaendert" : ""}"><div class="wp-tag-name">${datumKurz(d)}${wtHtml}${v.zeit!=="normal" ? `<span>${ZEIT[v.zeit].l}${v.reise ? " · Reise" : ""}</span>` : v.reise ? "<span>Reise</span>" : ""}</div><div>${zeilen || `<span class="leer">${v.zeit==="keine" ? "Keine Zeit" : "Ruhetag"}</span>`}</div></div>`;
     }).join("")}
     ${g.nichtUntergebracht.length ? `<div class="warnung"><b>Nicht untergebracht:</b> ${esc(g.nichtUntergebracht.map(x => x.titel).join(", "))} – zu wenig Zeit oder Regelkonflikt. Mehr Zeit freigeben oder später im Kalender hinzufügen.</div>` : ""}
-    <p class="klein-grau" style="margin:10px 0 0">Tippe auf eine Einheit, um sie auf einen anderen Tag zu legen.</p>
+    <p class="klein-grau" style="margin:10px 0 0">${wp.wetter ? `Wetter ${WETTER_ORT.name} (${WETTER_ORT.plz}) berücksichtigt: Läufe und Radfahrten liegen möglichst an trockenen Tagen, Pausen zwischen harten Einheiten haben Vorrang.` : "Keine Wettervorhersage verfügbar – ganz normal geplant."}</p>
+    <p class="klein-grau" style="margin:6px 0 0">Tippe auf eine Einheit, um sie auf einen anderen Tag zu legen.</p>
     <p class="klein-grau" style="margin:6px 0 0">Lauf-Basis: ${g.info.laufBasis} min${g.info.lauf2 > g.info.lauf1 ? ` → Lauf 2 mit ${g.info.lauf2} min (+10 %)` : g.info.knieOk ? "" : " (keine Steigerung: Knie war auffällig)"} · Rad lang: ${g.info.radLang} min${g.info.schwelleMehr ? " · Schwelle: 3×10 statt 3×8 min" : ""}</p>
   </div>`;
   const schonGeplant = (wp.wochen || []).find(w => w.start===wp.ziel);
